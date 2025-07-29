@@ -43,19 +43,19 @@ class PodiumWidget extends StatelessWidget {
             _buildPodiumBlock(
               position: 2,
               name: podiumTeams.length > 1 ? podiumTeams[1].teamName : 'N/A',
-              height: 100,
+              size: 120,
               color: Colors.grey[400]!,
             ),
             _buildPodiumBlock(
               position: 1,
               name: podiumTeams.isNotEmpty ? podiumTeams[0].teamName : 'N/A',
-              height: 140,
+              size: 160,
               color: Colors.amber[600]!,
             ),
             _buildPodiumBlock(
               position: 3,
               name: podiumTeams.length > 2 ? podiumTeams[2].teamName : 'N/A',
-              height: 80,
+              size: 100,
               color: Colors.brown[400]!,
             ),
           ],
@@ -77,8 +77,13 @@ class PodiumWidget extends StatelessWidget {
               final team = teams[index];
               return Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: ListTile(
-                  title: Center(child: Text(team.teamName)),
+                child: Card(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(25.0),
+                      child: Text(team.teamName),
+                    ),
+                  ),
                   // subtitle: Text('Points: ${team.points}'),
                 ),
               );
@@ -93,8 +98,9 @@ class PodiumWidget extends StatelessWidget {
   Widget _buildPodiumBlock({
     required int position,
     required String name,
-    required double height,
+    // required double height,
     required Color color,
+    required double size,
   }) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -120,26 +126,27 @@ class PodiumWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          width: 110,
-          height: height,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              '$position',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
+        Icon(Icons.emoji_events, size: size, color: color),
+        // Container(
+        //   width: 110,
+        //   height: height,
+        //   decoration: BoxDecoration(
+        //     color: color,
+        //     borderRadius: BorderRadius.circular(8),
+        //   ),
+        //   alignment: Alignment.topCenter,
+        //   child: Padding(
+        //     padding: const EdgeInsets.only(top: 4),
+        //     child: Text(
+        //       '$position',
+        //       style: const TextStyle(
+        //         fontSize: 16,
+        //         fontWeight: FontWeight.bold,
+        //         color: Colors.white,
+        //       ),
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:tourney_app/models/player.dart';
+import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/utils/match_crud.dart';
 import 'package:tourney_app/widgets/podium_widget.dart';
@@ -49,39 +50,133 @@ class _TournamentDetailPageState extends State<TournamentDetailPage>
     super.dispose();
   }
 
+  void showAddMatchDialog() {
+    final roundNameController = TextEditingController();
+    Team? selectedTeam1;
+    Team? selectedTeam2;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Match'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: roundNameController,
+                    decoration: const InputDecoration(labelText: 'Round Name'),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<Team>(
+                    hint: const Text("Select Home Team"),
+                    value: selectedTeam1,
+                    items: widget.tournament.teams.map((team) {
+                      return DropdownMenuItem(
+                        value: team,
+                        child: Text(team.teamName),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() => selectedTeam1 = value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<Team>(
+                    hint: const Text("Select Away Team"),
+                    value: selectedTeam2,
+                    items: widget.tournament.teams.map((team) {
+                      return DropdownMenuItem(
+                        value: team,
+                        child: Text(team.teamName),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() => selectedTeam2 = value);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final roundName = roundNameController.text.trim();
+
+              if (roundName.isEmpty ||
+                  selectedTeam1 == null ||
+                  selectedTeam2 == null ||
+                  selectedTeam1 == selectedTeam2) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Please complete all fields and select different teams.',
+                    ),
+                  ),
+                );
+                return;
+              } else {
+                // Call the function to create a match
+                createMatch(
+                      tournamentId: widget.tournament.id,
+                      roundName: roundName,
+                      homeTeam: selectedTeam1!,
+                      awayTeam: selectedTeam2!,
+                    )
+                    .then((_) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Match created successfully!'),
+                        ),
+                      );
+                      Navigator.of(context).pop(); // Close the dialog
+                    })
+                    .catchError((error) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error creating match: $error')),
+                      );
+                    });
+              }
+
+              // onMatchCreated(roundName, selectedTeam1!, selectedTeam2!);
+            },
+            child: const Text('Create Match'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tournament Details'),
+        backgroundColor: Colors.deepOrangeAccent,
+        actions: [
+          if (widget.isAdmin)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () {
+                // open dialog box to add a new match to the tournament
+                showAddMatchDialog();
+              },
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Container with Back Arrow and Title
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              color: Colors.deepOrangeAccent,
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Icon(Icons.arrow_back, color: Colors.white),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    "Tournament Details",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
+            
             const SizedBox(height: 20),
 
             // Row with CircleAvatar and Tournament Title

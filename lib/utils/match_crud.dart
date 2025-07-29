@@ -254,3 +254,53 @@ Future<void> createFinalMatch(String tournamentId) async {
 
   await tournamentRef.update({'rounds': updatedRounds});
 }
+
+Future<void> createMatch({
+  required String tournamentId,
+  required Team? homeTeam,
+  required Team? awayTeam,
+  required String roundName,
+}) async {
+  final tournamentRef = FirebaseFirestore.instance
+      .collection('tournaments')
+      .doc(tournamentId);
+
+  final snapshot = await tournamentRef.get();
+  final data = snapshot.data()!;
+
+  List<String> tplayerIds = [];
+  if (homeTeam!.playerIdsTeam.isNotEmpty) {
+    tplayerIds.addAll(homeTeam.playerIdsTeam);
+  }
+  if (awayTeam!.playerIdsTeam.isNotEmpty) {
+    tplayerIds.addAll(awayTeam.playerIdsTeam);
+  }
+
+  // Create a new final match
+  String matchId = 'match_$roundName';
+
+  Map<String, dynamic> newMatch = {
+    'id': matchId,
+    'type': 'final',
+    'status': 'upcoming',
+    'playerIds': tplayerIds,
+    'team1': homeTeam.toMap(),
+    'team2': awayTeam.toMap(),
+    'scores': {homeTeam.teamName: 0, awayTeam.teamName: 0},
+    'winner': '',
+  };
+
+  // Add to a new round called "Final"
+  Map<String, dynamic> newRound = {
+    'id': 'round_$roundName',
+    'name': roundName,
+    'roundNumber': (data['rounds'] as List).length + 1,
+    'matches': [newMatch],
+  };
+
+  // Update Firestore
+  List<dynamic> updatedRounds = List.from(data['rounds'] ?? []);
+  updatedRounds.add(newRound);
+
+  await tournamentRef.update({'rounds': updatedRounds});
+}

@@ -260,192 +260,192 @@ class _HomePageState extends State<HomePage> {
                 double width = constraints.maxWidth;
 
                 // Desktop layout
-                if (width > 900) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: GridView.count(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      children: const [
-                        // TournamentCard(),
-                        PlayerCard(),
-                        MatchCard(),
-                        // TournamentBracketTree(
-                        //   tournamentId: 'ILUZobyQXe1Iw3OYBnDx',
-                        // ),
-                      ],
-                    ),
-                  );
-                }
+                // if (width > 900) {
+                //   return Padding(
+                //     padding: const EdgeInsets.all(16.0),
+                //     child: GridView.count(
+                //       crossAxisCount: 3,
+                //       crossAxisSpacing: 16,
+                //       mainAxisSpacing: 16,
+                //       children: const [
+                //         // TournamentCard(),
+                //         PlayerCard(),
+                //         MatchCard(),
+                //         // TournamentBracketTree(
+                //         //   tournamentId: 'ILUZobyQXe1Iw3OYBnDx',
+                //         // ),
+                //       ],
+                //     ),
+                //   );
+                // }
                 // Tablet layout
-                else if (width > 600) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      children: const [
-                        // TournamentCard(),
-                        Text(
-                          'Upcoming Matches Tablet',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                // else if (width > 600) {
+                //   return Padding(
+                //     padding: const EdgeInsets.all(16.0),
+                //     child: GridView.count(
+                //       crossAxisCount: 2,
+                //       crossAxisSpacing: 16,
+                //       mainAxisSpacing: 16,
+                //       children: const [
+                //         // TournamentCard(),
+                //         Text(
+                //           'Upcoming Matches Tablet',
+                //           style: TextStyle(
+                //             fontSize: 20,
+                //             fontWeight: FontWeight.bold,
+                //           ),
+                //         ),
+                //         PlayerCard(),
+                //         MatchCard(),
+                //       ],
+                //     ),
+                //   );
+                // }
+                // Mobile layout
+                // else {
+                return SafeArea(
+                  // wrap this with a future builder to fetch tournaments
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Welcome Container
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          color: Colors.deepOrangeAccent,
+                          child: const Center(
+                            child: Text(
+                              'Welcome!',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
-                        PlayerCard(),
-                        MatchCard(),
+                        const SizedBox(height: 20),
+                        // List of Tournaments -  ongoing tournaments
+                        // Ongoing Tournaments Text
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            "Ongoing Tournaments",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (ongoingTournaments.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text('No ongoing tournaments'),
+                            ),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ListView.builder(
+                              physics: NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              itemCount: ongoingTournaments.length,
+                              itemBuilder: (context, index) {
+                                return TournamentCard(
+                                  tournament: ongoingTournaments[index],
+                                  isAdmin: loggedInPlayer?.isAdmin ?? false,
+                                );
+                              },
+                            ),
+                          ),
+                        // -- upcoming tournaments
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            "Upcoming Tournaments",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (upcomingTournaments.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text('No upcoming tournaments'),
+                            ),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ListView.builder(
+                              physics: NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              itemCount: upcomingTournaments.length,
+                              itemBuilder: (context, index) {
+                                return TournamentCard(
+                                  tournament: upcomingTournaments[0],
+                                  isAdmin: loggedInPlayer?.isAdmin ?? false,
+                                );
+                              },
+                            ),
+                          ),
+                        //  -- completed tournaments
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            "Completed Tournaments",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (completedTournaments.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text('No completed tournaments'),
+                            ),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ListView.builder(
+                              physics: NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              itemCount: completedTournaments.length,
+                              itemBuilder: (context, index) {
+                                return TournamentCard(
+                                  tournament: completedTournaments[index],
+                                  isAdmin: loggedInPlayer?.isAdmin ?? false,
+                                );
+                              },
+                            ),
+                          ),
                       ],
                     ),
-                  );
-                }
-                // Mobile layout
-                else {
-                  return SafeArea(
-                    // wrap this with a future builder to fetch tournaments
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Top Welcome Container
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            color: Colors.deepOrangeAccent,
-                            child: const Center(
-                              child: Text(
-                                'Welcome!',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          // List of Tournaments -  ongoing tournaments
-                          // Ongoing Tournaments Text
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              "Ongoing Tournaments",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          if (ongoingTournaments.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Center(
-                                child: Text('No ongoing tournaments'),
-                              ),
-                            )
-                          else
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: ListView.builder(
-                                physics: NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                itemCount: ongoingTournaments.length,
-                                itemBuilder: (context, index) {
-                                  return TournamentCard(
-                                    tournament: ongoingTournaments[index],
-                                    isAdmin: loggedInPlayer?.isAdmin ?? false,
-                                  );
-                                },
-                              ),
-                            ),
-                          // -- upcoming tournaments
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              "Upcoming Tournaments",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          if (upcomingTournaments.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Center(
-                                child: Text('No upcoming tournaments'),
-                              ),
-                            )
-                          else
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: ListView.builder(
-                                physics: NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                itemCount: upcomingTournaments.length,
-                                itemBuilder: (context, index) {
-                                  return TournamentCard(
-                                    tournament: upcomingTournaments[0],
-                                    isAdmin: loggedInPlayer?.isAdmin ?? false,
-                                  );
-                                },
-                              ),
-                            ),
-                          //  -- completed tournaments
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              "Completed Tournaments",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          if (completedTournaments.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Center(
-                                child: Text('No completed tournaments'),
-                              ),
-                            )
-                          else
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: ListView.builder(
-                                physics: NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                itemCount: completedTournaments.length,
-                                itemBuilder: (context, index) {
-                                  return TournamentCard(
-                                    tournament: completedTournaments[index],
-                                    isAdmin: loggedInPlayer?.isAdmin ?? false,
-                                  );
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
+                  ),
+                );
+                // }
               },
             );
           }

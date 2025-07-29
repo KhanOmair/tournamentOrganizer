@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 final ThemeData orangeTheme = ThemeData(
   brightness: Brightness.light,
-  primaryColor: Color(0xFFFF6B00), // Main orange
+  primaryColor: Colors.deepOrangeAccent, // Main orange
   scaffoldBackgroundColor: Color(0xFFF5F5F5), // Light background
   cardColor: Colors.white, // Surface/Card
   appBarTheme: AppBarTheme(
-    backgroundColor: Color(0xFFFF6B00),
+    backgroundColor: Colors.deepOrangeAccent,
     foregroundColor: Colors.white,
     elevation: 0,
     iconTheme: IconThemeData(color: Colors.white),
@@ -18,7 +18,7 @@ final ThemeData orangeTheme = ThemeData(
   ),
   colorScheme: ColorScheme(
     brightness: Brightness.light,
-    primary: Color(0xFFFF6B00), // Main orange
+    primary: Colors.deepOrangeAccent, // Main orange
     onPrimary: Colors.white,
     secondary: Color(0xFFFFA552), // Light orange
     onSecondary: Colors.white,
@@ -30,34 +30,33 @@ final ThemeData orangeTheme = ThemeData(
     onSurface: Color(0xFF1F1F1F),
   ),
   textTheme: TextTheme(
-    headlineLarge: TextStyle(color: Color(0xFF1F1F1F), fontWeight: FontWeight.bold),
+    headlineLarge: TextStyle(
+      color: Color(0xFF1F1F1F),
+      fontWeight: FontWeight.bold,
+    ),
     bodyLarge: TextStyle(color: Color(0xFF1F1F1F)),
     bodyMedium: TextStyle(color: Color(0xFF6E6E6E)),
   ),
   floatingActionButtonTheme: FloatingActionButtonThemeData(
-    backgroundColor: Color(0xFFFF6B00),
+    backgroundColor: Colors.deepOrangeAccent,
     foregroundColor: Colors.white,
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: Color(0xFFFF6B00),
+      backgroundColor: Colors.deepOrangeAccent,
       foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       textStyle: TextStyle(fontWeight: FontWeight.bold),
     ),
   ),
   inputDecorationTheme: InputDecorationTheme(
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-    ),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: Color(0xFFFF6B00), width: 2),
+      borderSide: BorderSide(color: Colors.deepOrangeAccent, width: 2),
     ),
   ),
   snackBarTheme: SnackBarThemeData(
-    backgroundColor: Color(0xFFFF6B00),
+    backgroundColor: Colors.deepOrangeAccent,
     contentTextStyle: TextStyle(color: Colors.white),
   ),
 );

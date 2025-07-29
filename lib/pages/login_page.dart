@@ -47,23 +47,6 @@ class _LoginPageState extends State<LoginPage> {
           bool isDesktop = constraints.maxWidth > 800;
           return Row(
             children: [
-              if (isDesktop)
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    color: Colors.green.shade200,
-                    child: Center(
-                      child: Text(
-                        'Pickleball Scheduler',
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
               Expanded(
                 flex: 1,
                 child: Center(

@@ -86,15 +86,19 @@ class _SignupPageState extends State<SignupPage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 12),
             TextField(
               controller: _firstNameController,
               decoration: const InputDecoration(labelText: 'First Name'),
             ),
+            const SizedBox(height: 12),
             TextField(
               controller: _lastNameController,
               decoration: const InputDecoration(labelText: 'Last Name'),
             ),
+            const SizedBox(height: 12),
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Preferred Name'),
@@ -115,7 +119,13 @@ class _SignupPageState extends State<SignupPage> {
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: _signup,
-                    child: const Text('Sign Up'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: const Text(
+                        'Sign Up',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
                   ),
           ],
         ),
