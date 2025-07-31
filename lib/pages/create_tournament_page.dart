@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/pages/custom_teams_page.dart';
+import 'package:tourney_app/utils/tournament_crud.dart';
 
 class CreateTournamentPage extends StatefulWidget {
   const CreateTournamentPage({super.key});
@@ -218,10 +219,20 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             'createdAt': FieldValue.serverTimestamp(),
             'teams': teams.map((team) => team.toMap()).toList(),
           })
-          .then((onValue) {
+          .then((onValue) async {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Tournament created successfully')),
             );
+
+            // Update tournamentsPlayed for each player
+
+            // create a list of playerIds from teams
+            List<String> playerIds = [];
+            for (var team in teams) {
+              playerIds.addAll(team.playerIdsTeam);
+            }
+            await updateTournamentsPlayedForPlayers(playerIds);
+
             Navigator.pop(context); // Close the create tournament page
           })
           .catchError((error) {

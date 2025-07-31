@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Tournament Scheduler',
+      title: 'Tournament Organizer',
       theme: orangeTheme,
       home: AuthGate(),
     );

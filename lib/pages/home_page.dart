@@ -8,6 +8,7 @@ import 'package:tourney_app/models/round.dart';
 import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/pages/create_tournament_page.dart';
+import 'package:tourney_app/pages/player_details_page.dart';
 import 'package:tourney_app/widgets/match_card.dart';
 import 'package:tourney_app/widgets/player_card.dart';
 import 'package:tourney_app/widgets/tournament_card.dart';
@@ -145,42 +146,6 @@ class _HomePageState extends State<HomePage> {
     _initFuture = init();
   }
 
-  // init method to fetch tournaments from Firestore
-  // Future<List<Tournament>> init() async {
-  //   // Fetch tournaments from Firestore
-  //   final tournamentCollection = FirebaseFirestore.instance.collection(
-  //     'tournaments',
-  //   );
-  //   final tournamentDocs = await tournamentCollection.get();
-
-  //   // Check if the user is logged in and fetch their data
-  //   final user = FirebaseAuth.instance.currentUser;
-  //   if (user != null) {
-  //     await FirebaseFirestore.instance
-  //         .collection('players')
-  //         .doc(user.uid)
-  //         .get()
-  //         .then((userDoc) {
-  //           if (userDoc.exists) {
-  //             loggedInPlayer = Player.fromFirestore(
-  //               userDoc.data()!,
-  //               userDoc.id,
-  //             );
-  //             print('Logged in player: ${loggedInPlayer!.name}');
-  //           }
-  //         });
-  //   } else {
-  //     throw Exception('User not found');
-  //   }
-
-  //   setState(() {
-  //     fetchedTournaments = tournamentDocs.docs.map((doc) {
-  //       return Tournament.fromFirestore(doc.data(), doc.id);
-  //     }).toList();
-  //   });
-  //   return fetchedTournaments;
-  // }
-
   Future<List<Tournament>> init() async {
     final tournamentCollection = FirebaseFirestore.instance.collection(
       'tournaments',
@@ -314,15 +279,47 @@ class _HomePageState extends State<HomePage> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           color: Colors.deepOrangeAccent,
-                          child: const Center(
-                            child: Text(
-                              'Welcome!',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Spacer(),
+                              Center(
+                                child: Text(
+                                  'Welcome!',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
+                              Spacer(),
+
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                  child: CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor: Colors.white,
+                                    child: Icon(
+                                      Icons.person,
+                                      color: Colors.deepOrange,
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    // Navigate to player profile page
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PlayerDetailsPage(
+                                          playerId: loggedInPlayer!.id,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 20),

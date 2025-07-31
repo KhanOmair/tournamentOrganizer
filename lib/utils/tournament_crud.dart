@@ -32,3 +32,26 @@ Future<void> deleteTournament(String tournamentId) async {
     // You can show a snackbar or alert here too
   }
 }
+
+
+Future<void> updateTournamentsPlayedForPlayers(List<String> playerIds) async {
+  final playersCollection = FirebaseFirestore.instance.collection('players');
+
+  for (String playerId in playerIds) {
+    final playerDocRef = playersCollection.doc(playerId);
+    
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(playerDocRef);
+
+      if (snapshot.exists) {
+        final currentCount = snapshot.data()?['tournamentsPlayed'] ?? 0;
+        transaction.update(playerDocRef, {
+          'tournamentsPlayed': currentCount + 1,
+        });
+      } else {
+        // Optional: Create the player document if it doesn't exist
+        transaction.set(playerDocRef, {'tournamentsPlayed': 1});
+      }
+    });
+  }
+}
