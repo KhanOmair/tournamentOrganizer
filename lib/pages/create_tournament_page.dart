@@ -3,8 +3,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tourney_app/models/team.dart';
+import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/pages/custom_teams_page.dart';
 import 'package:tourney_app/utils/tournament_crud.dart';
+import 'package:tourney_app/widgets/grouping_widget.dart';
 
 class CreateTournamentPage extends StatefulWidget {
   const CreateTournamentPage({super.key});
@@ -20,11 +22,28 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
   String? _selectedType;
   List<String> _selectedPlayerIds = [];
-  bool _isLoading = false;
+
   List<Team> teams = [];
+  List<Group> groups = [];
+
+  bool _isLoading = false;
   bool isDoubles = true;
   bool teamsCreated = false;
   bool isCustomTeams = false;
+  bool choosingFinalist = false;
+  bool makeGroups = false;
+
+  Team finalistTeam = Team(
+    teamId: "not_selected",
+    teamName: "BYE",
+    playerIdsTeam: ["BYE"],
+    played: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+  );
 
   Future<List<Team>> _generateTeams() async {
     if (isDoubles == true) {
@@ -147,6 +166,11 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   'Random Teams',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
+                if (tteams.length.isOdd)
+                  Text(
+                    'Choose a team to be the finalist(optional)',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
                 const SizedBox(height: 16.0),
                 SizedBox(
                   height: 300,
@@ -156,7 +180,47 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                       final team = tteams[index];
                       return ListTile(
                         leading: CircleAvatar(child: Text('${index + 1}')),
-                        title: Text(team.teamName),
+                        title: Row(
+                          children: [
+                            Text(team.teamName),
+                            Spacer(),
+
+                            if (tteams.length.isOdd)
+                              Checkbox(
+                                value: team.teamId == finalistTeam.teamId,
+                                onChanged: (value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      finalistTeam = team;
+                                      finalistTeam = Team(
+                                        teamId: team.teamId,
+                                        teamName: team.teamName,
+                                        playerIdsTeam: team.playerIdsTeam,
+                                        played: team.played,
+                                        wins: 20,
+                                        draws: team.draws,
+                                        losses: team.losses,
+                                        goalsFor: team.goalsFor,
+                                        goalsAgainst: team.goalsAgainst,
+                                      );
+                                    } else {
+                                      finalistTeam = Team(
+                                        teamId: "bye_1",
+                                        teamName: "BYE",
+                                        playerIdsTeam: ["BYE"],
+                                        played: 0,
+                                        wins: 0,
+                                        draws: 0,
+                                        losses: 0,
+                                        goalsFor: 0,
+                                        goalsAgainst: 0,
+                                      );
+                                    }
+                                  });
+                                },
+                              ),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -200,6 +264,23 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     });
 
     try {
+      // find the finalist team from the teams list
+      if (finalistTeam.teamId != "not_selected") {
+        teams.removeWhere((team) => team.teamId == finalistTeam.teamId);
+        teams.add(
+          Team(
+            teamId: finalistTeam.teamId,
+            teamName: finalistTeam.teamName,
+            playerIdsTeam: finalistTeam.playerIdsTeam,
+            played: finalistTeam.played,
+            wins: 20,
+            draws: finalistTeam.draws,
+            losses: finalistTeam.losses,
+            goalsFor: finalistTeam.goalsFor,
+            goalsAgainst: finalistTeam.goalsAgainst,
+          ),
+        );
+      }
       // Generate rounds + matches
       final rounds = await _generateRoundsAndMatches(
         teams: teams,
@@ -218,6 +299,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             'rounds': rounds,
             'createdAt': FieldValue.serverTimestamp(),
             'teams': teams.map((team) => team.toMap()).toList(),
+            'groups': groups.map((group) => group.toMap()).toList(),
           })
           .then((onValue) async {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -281,8 +363,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       if (teamList.length.isOdd) {
         teamList.add(
           Team(
-            teamId: DateTime.now().millisecondsSinceEpoch.toString(),
-
+            teamId: "bye_1",
             teamName: "BYE",
             playerIdsTeam: ["BYE"],
             played: 0,
@@ -353,8 +434,89 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
       return rounds;
     }
-    // if not singles , then doubles
-    else {
+    // chosen finalist
+    else if (finalistTeam.teamId != "not_selected") {
+      List<Team> teamList = List.from(teams);
+
+      teamList.removeWhere((team) => team.teamId == finalistTeam.teamId);
+
+      if (teamList.length.isOdd) {
+        teamList.add(
+          Team(
+            teamId: DateTime.now().millisecondsSinceEpoch.toString(),
+            teamName: "BYE",
+            playerIdsTeam: ["BYE"],
+            played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+          ),
+        );
+      }
+
+      int numPlayers = teamList.length;
+      int numRounds = numPlayers - 1; // Total rounds
+      int halfSize = numPlayers ~/ 2;
+
+      List<Map<String, dynamic>> rounds = [];
+
+      // Create a list to rotate players
+      List<Team> rotation = List.from(teamList);
+
+      for (int round = 0; round < numRounds; round++) {
+        List<Map<String, dynamic>> matches = [];
+
+        for (int i = 0; i < halfSize; i++) {
+          Team home = rotation[i];
+          Team away = rotation[numPlayers - 1 - i];
+
+          List<String> tplayerIds = [];
+          if (home.playerIdsTeam.isNotEmpty) {
+            tplayerIds.addAll(home.playerIdsTeam);
+          }
+          if (away.playerIdsTeam.isNotEmpty) {
+            tplayerIds.addAll(away.playerIdsTeam);
+          }
+          if ((home.teamName == 'BYE' && away.teamId != finalistTeam.teamId) ||
+              (away.teamName == 'BYE' && home.teamId != finalistTeam.teamId)) {
+            continue;
+          }
+
+          if (home.playerIdsTeam != ["BYE"] && away.playerIdsTeam != ["BYE"]) {
+            matches.add({
+              'id': 'match_${round + 1}_$i',
+              'type': 'singles',
+              'status': 'upcoming',
+              'playerIds': tplayerIds,
+              'team1': home.toMap(),
+              'team2': away.toMap(),
+              'scores': {home.teamName: 0, away.teamName: 0},
+              'winner': '',
+            });
+            // matches.add({
+            //   "player1": home,
+            //   "player2": away,
+            // });
+          }
+        }
+
+        rounds.add({
+          'id': 'round_${round + 1}',
+          'name': 'Round ${round + 1}',
+          "roundNumber": round + 1,
+          "matches": matches,
+        });
+
+        // Rotate players for next round
+        var lastPlayer = rotation.removeLast();
+        rotation.insert(1, lastPlayer);
+      }
+
+      return rounds;
+    } else // if not singles , then doubles
+    {
       List<Team> teamList = List.from(teams);
 
       if (teamList.length.isOdd) {
@@ -399,7 +561,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
           if (home.playerIdsTeam != ["BYE"] && away.playerIdsTeam != ["BYE"]) {
             matches.add({
               'id': 'match_${round + 1}_$i',
-              'type': 'singles',
+              'type': 'doubles',
               'status': 'upcoming',
               'playerIds': tplayerIds,
               'team1': home.toMap(),
@@ -448,7 +610,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         }
 
         matches.add({
-          'type': 'singles',
+          'type': 'doubles',
           'status': 'upcoming',
           'playerIds': matchPlayers,
           'scores': {'team1': 0, 'team2': 0},
@@ -574,6 +736,34 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   ),
                 ],
               ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Choose Finalist'),
+                  Switch(
+                    value: choosingFinalist,
+                    onChanged: (value) {
+                      setState(() {
+                        choosingFinalist = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Make Groups'),
+                  Switch(
+                    value: makeGroups,
+                    onChanged: (value) {
+                      setState(() {
+                        makeGroups = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _dateController,
@@ -583,6 +773,56 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Enter a date' : null,
               ),
+              if (choosingFinalist == true)
+                // Display the custom teams created is ListView
+                Column(
+                  children: teams.map((team) {
+                    return ListTile(
+                      title: Row(
+                        children: [
+                          Text(team.teamName),
+                          Spacer(),
+
+                          if (teams.length.isOdd)
+                            Checkbox(
+                              value: team.teamId == finalistTeam.teamId,
+                              onChanged: (value) {
+                                setState(() {
+                                  if (value == true) {
+                                    finalistTeam = team;
+                                    finalistTeam = Team(
+                                      teamId: team.teamId,
+                                      teamName: team.teamName,
+                                      playerIdsTeam: team.playerIdsTeam,
+                                      played: team.played,
+                                      wins: 20,
+                                      draws: team.draws,
+                                      losses: team.losses,
+                                      goalsFor: team.goalsFor,
+                                      goalsAgainst: team.goalsAgainst,
+                                    );
+                                  } else {
+                                    finalistTeam = Team(
+                                      teamId: "bye_1",
+                                      teamName: "BYE",
+                                      playerIdsTeam: ["BYE"],
+                                      played: 0,
+                                      wins: 0,
+                                      draws: 0,
+                                      losses: 0,
+                                      goalsFor: 0,
+                                      goalsAgainst: 0,
+                                    );
+                                  }
+                                });
+                              },
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+
               const SizedBox(height: 10),
               if (isCustomTeams == false) const Text('Select Players:'),
               if (isCustomTeams == false) _buildPlayerList(),
@@ -591,6 +831,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 ElevatedButton(
                   onPressed: () async {
                     // Navigate to Custom Teams Page
+
                     teams = await Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -619,6 +860,20 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                     }
                   },
                   child: Text(isDoubles ? 'Generate Teams' : 'Shuffle Players'),
+                ),
+              if (makeGroups == true)
+                ElevatedButton(
+                  onPressed: () async {
+                    // Navigate to Custom Teams Page
+
+                    groups = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GroupingWidget(teams: teams),
+                      ),
+                    );
+                  },
+                  child: Text('Create Groups '),
                 ),
               const SizedBox(height: 20),
               _isLoading

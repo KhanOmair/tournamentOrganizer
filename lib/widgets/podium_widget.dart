@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:tourney_app/models/team.dart';
+import 'package:tourney_app/models/tournament.dart';
 
 class PodiumWidget extends StatelessWidget {
   final List<Team> teams;
-
-  const PodiumWidget({Key? key, required this.teams}) : super(key: key);
+  final List<Group> groups;
+  const PodiumWidget({Key? key, required this.teams, required this.groups})
+    : super(key: key);
 
   List<Team> _sortTeams(List<Team> unsortedTeams) {
     final sorted = List<Team>.from(unsortedTeams);
@@ -33,64 +35,115 @@ class PodiumWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 32),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            _buildPodiumBlock(
-              position: 2,
-              name: podiumTeams.length > 1 ? podiumTeams[1].teamName : 'N/A',
-              size: 120,
-              color: Colors.grey[400]!,
+    return SingleChildScrollView(
+      child: Column(
+        // mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          const SizedBox(height: 32),
+          Align(
+            alignment: Alignment.topCenter,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildPodiumBlock(
+                  position: 2,
+                  name: podiumTeams.length > 1
+                      ? podiumTeams[1].teamName
+                      : 'N/A',
+                  size: 120,
+                  color: Colors.grey[400]!,
+                ),
+                _buildPodiumBlock(
+                  position: 1,
+                  name: podiumTeams.isNotEmpty
+                      ? podiumTeams[0].teamName
+                      : 'N/A',
+                  size: 160,
+                  color: Colors.amber[600]!,
+                ),
+                _buildPodiumBlock(
+                  position: 3,
+                  name: podiumTeams.length > 2
+                      ? podiumTeams[2].teamName
+                      : 'N/A',
+                  size: 100,
+                  color: Colors.brown[400]!,
+                ),
+              ],
             ),
-            _buildPodiumBlock(
-              position: 1,
-              name: podiumTeams.isNotEmpty ? podiumTeams[0].teamName : 'N/A',
-              size: 160,
-              color: Colors.amber[600]!,
-            ),
-            _buildPodiumBlock(
-              position: 3,
-              name: podiumTeams.length > 2 ? podiumTeams[2].teamName : 'N/A',
-              size: 100,
-              color: Colors.brown[400]!,
-            ),
-          ],
-        ),
-        const SizedBox(height: 32),
-        Text(
-          'All Teams',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.deepOrangeAccent,
           ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: ListView.builder(
-            itemCount: teams.length,
+          const SizedBox(height: 32),
+          Text(
+            'All Teams',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepOrangeAccent,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: groups.length,
             itemBuilder: (context, index) {
-              final team = teams[index];
+              final group = groups[index];
               return Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Card(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(25.0),
-                      child: Text(team.teamName),
-                    ),
-                  ),
-                  // subtitle: Text('Points: ${team.points}'),
+                child: ExpansionTile(
+                  initiallyExpanded: true,
+                  title: Text(group.name),
+                  children: group.teams.map((team) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
+                      child: Card(
+                        child: ListTile(
+                          title: Text(team.teamName),
+                          // subtitle: Text('Wins: ${team.wins}'),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               );
             },
           ),
-        ),
-      ],
+          // Expanded(
+          //   child: ListView.builder(
+          //             ),
+          //           ),
+          //           // subtitle: Text('Points: ${team.points}'),
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
+          // Expanded(
+          //   child: ListView.builder(
+          //     itemCount: teams.length,
+          //     itemBuilder: (context, index) {
+          //       final team = teams[index];
+          //       return Padding(
+          //         padding: const EdgeInsets.all(8.0),
+          //         child: Card(
+          //           child: Center(
+          //             child: Padding(
+          //               padding: const EdgeInsets.all(25.0),
+          //               child: Text(team.teamName),
+          //             ),
+          //           ),
+          //           // subtitle: Text('Points: ${team.points}'),
+          //         ),
+          //       );
+          //     },
+          //   ),
+          // ),
+        ],
+      ),
     );
     // return _buildPodium(teams: podiumTeams);
   }

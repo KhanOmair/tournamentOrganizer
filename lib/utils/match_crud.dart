@@ -31,33 +31,37 @@ Team _updateTeamStats(Team team, int goalsFor, int goalsAgainst) {
 
 Future<void> _updatePlayerStats(GameMatch match, String winner) async {
   for (String playerId in match.team1.playerIdsTeam) {
-    final playerRef = FirebaseFirestore.instance
-        .collection('players')
-        .doc(playerId);
-    await playerRef.update({
-      'globalStats.matchesPlayed': FieldValue.increment(1),
-      'globalStats.wins': winner == 'team1'
-          ? FieldValue.increment(1)
-          : FieldValue.increment(0),
-      'globalStats.losses': winner == 'team2'
-          ? FieldValue.increment(1)
-          : FieldValue.increment(0),
-    });
+    if (playerId != "BYE") {
+      final playerRef = FirebaseFirestore.instance
+          .collection('players')
+          .doc(playerId);
+      await playerRef.update({
+        'globalStats.matchesPlayed': FieldValue.increment(1),
+        'globalStats.wins': winner == 'team1'
+            ? FieldValue.increment(1)
+            : FieldValue.increment(0),
+        'globalStats.losses': winner == 'team2'
+            ? FieldValue.increment(1)
+            : FieldValue.increment(0),
+      });
+    }
   }
 
   for (String playerId in match.team2.playerIdsTeam) {
-    final playerRef = FirebaseFirestore.instance
-        .collection('players')
-        .doc(playerId);
-    await playerRef.update({
-      'globalStats.matchesPlayed': FieldValue.increment(1),
-      'globalStats.wins': winner == 'team2'
-          ? FieldValue.increment(1)
-          : FieldValue.increment(0),
-      'globalStats.losses': winner == 'team1'
-          ? FieldValue.increment(1)
-          : FieldValue.increment(0),
-    });
+    if (playerId != "BYE") {
+      final playerRef = FirebaseFirestore.instance
+          .collection('players')
+          .doc(playerId);
+      await playerRef.update({
+        'globalStats.matchesPlayed': FieldValue.increment(1),
+        'globalStats.wins': winner == 'team2'
+            ? FieldValue.increment(1)
+            : FieldValue.increment(0),
+        'globalStats.losses': winner == 'team1'
+            ? FieldValue.increment(1)
+            : FieldValue.increment(0),
+      });
+    }
   }
 }
 
@@ -303,4 +307,71 @@ Future<void> createMatch({
   updatedRounds.add(newRound);
 
   await tournamentRef.update({'rounds': updatedRounds});
+}
+
+Future<void> updateMatchTeams({
+  tournamentId,
+  roundId,
+  matchId,
+  newTeam1Id,
+  newTeam2Id,
+}) async {
+  final tournamentRef = FirebaseFirestore.instance
+      .collection('tournaments')
+      .doc(tournamentId);
+
+  final snapshot = await tournamentRef.get();
+  final data = snapshot.data()!;
+
+  // find the match in the specified round
+  final roundIndex = (data['rounds'] as List).indexWhere(
+    (round) => round['id'] == roundId,
+  );
+  if (roundIndex == -1) {
+    throw Exception('Round not found');
+  }
+
+  // find the match in the specified round
+  final matchIndex = (data['rounds'][roundIndex]['matches'] as List).indexWhere(
+    (match) => match['id'] == matchId,
+  );
+  if (matchIndex == -1) {
+    throw Exception('Match not found');
+  }
+
+  // find the team in the tournament teams list
+  final team1Index = (data['teams'] as List).indexWhere(
+    (team) => team['teamId'] == newTeam1Id,
+  );
+  if (team1Index == -1) {
+    throw Exception('Team 1 not found');
+  }
+  Team team1 = Team.fromMap(data['teams'][team1Index]);
+
+  // find the team in the tournament teams list and save that team
+  final team2Index = (data['teams'] as List).indexWhere(
+    (team) => team['teamId'] == newTeam2Id,
+  );
+  if (team2Index == -1) {
+    throw Exception('Team 2 not found');
+  }
+  Team team2 = Team.fromMap(data['teams'][team2Index]);
+
+  // update the match in the tournament with new teams
+  data['rounds'][roundIndex]['matches'][matchIndex]['team1'] = team1.toMap();
+  data['rounds'][roundIndex]['matches'][matchIndex]['team2'] = team2.toMap();
+
+  //update the playerIds in the match
+  data['rounds'][roundIndex]['matches'][matchIndex]['playerIds'] = [
+    ...team1.playerIdsTeam,
+    ...team2.playerIdsTeam,
+  ];
+
+  // update the scores field in the match
+  data['rounds'][roundIndex]['matches'][matchIndex]['scores'] = {
+    team1.teamName: 0,
+    team2.teamName: 0,
+  };
+
+  await tournamentRef.update(data);
 }

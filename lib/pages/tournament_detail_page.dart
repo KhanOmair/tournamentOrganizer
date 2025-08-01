@@ -176,7 +176,6 @@ class _TournamentDetailPageState extends State<TournamentDetailPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
             const SizedBox(height: 20),
 
             // Row with CircleAvatar and Tournament Title
@@ -294,7 +293,10 @@ class _TournamentDetailPageState extends State<TournamentDetailPage>
                         print(tournament);
 
                         // Build your tournament details UI
-                        return PodiumWidget(teams: tournament.teams);
+                        return PodiumWidget(
+                          teams: tournament.teams,
+                          groups: tournament.groups,
+                        );
                       },
                     ),
                     // child: Text(

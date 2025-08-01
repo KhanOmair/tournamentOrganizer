@@ -9,8 +9,8 @@ import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/pages/create_tournament_page.dart';
 import 'package:tourney_app/pages/player_details_page.dart';
-import 'package:tourney_app/widgets/match_card.dart';
-import 'package:tourney_app/widgets/player_card.dart';
+// import 'package:tourney_app/widgets/match_card.dart';
+// import 'package:tourney_app/widgets/player_card.dart';
 import 'package:tourney_app/widgets/tournament_card.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,6 +27,7 @@ class _HomePageState extends State<HomePage> {
 
   final List<Tournament> tournaments = [
     Tournament(
+      groups: [],
       participants: [],
       teams: [
         Team(
@@ -222,7 +223,7 @@ class _HomePageState extends State<HomePage> {
 
             return LayoutBuilder(
               builder: (context, constraints) {
-                double width = constraints.maxWidth;
+                // double width = constraints.maxWidth;
 
                 // Desktop layout
                 // if (width > 900) {
@@ -394,7 +395,7 @@ class _HomePageState extends State<HomePage> {
                               itemCount: upcomingTournaments.length,
                               itemBuilder: (context, index) {
                                 return TournamentCard(
-                                  tournament: upcomingTournaments[0],
+                                  tournament: upcomingTournaments[index],
                                   isAdmin: loggedInPlayer?.isAdmin ?? false,
                                 );
                               },
