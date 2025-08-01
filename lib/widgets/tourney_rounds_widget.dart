@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/utils/match_crud.dart';
 
@@ -17,6 +18,9 @@ class TournamentRoundsWidget extends StatefulWidget {
 }
 
 class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
+  String newTeam1 = '';
+  String newTeam2 = '';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,80 +109,197 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                         int team2Score = match.scores.team2;
                         showDialog(
                           context: context,
-                          builder: (_) => AlertDialog(
-                            title: Center(child: Text('Edit Scores')),
-                            content: SizedBox(
-                              width: 300,
-                              height: 80,
-                              child: Row(
-                                // mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Container(
-                                    width: 100,
+                          builder: (context) {
+                            bool changingTeams = false;
+                            return StatefulBuilder(
+                              builder: (context, setState) {
+                                return AlertDialog(
+                                  title: Center(child: Text('Edit Scores')),
+                                  content: SizedBox(
+                                    width: 500,
+                                    height: 300,
                                     child: Column(
                                       children: [
-                                        Text(match.team1.teamName),
-                                        TextField(
-                                          keyboardType: TextInputType.number,
-                                          decoration: InputDecoration(
-                                            border: OutlineInputBorder(),
-                                            hintText: 'Score',
-                                          ),
-                                          onChanged: (value) {
-                                            team1Score =
-                                                int.tryParse(value) ?? 0;
-                                          },
+                                        Row(
+                                          // mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            Container(
+                                              width: 100,
+                                              child: Column(
+                                                children: [
+                                                  Text(match.team1.teamName),
+                                                  SizedBox(height: 8),
+                                                  TextField(
+                                                    keyboardType:
+                                                        TextInputType.number,
+                                                    decoration: InputDecoration(
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                      hintText: 'Score',
+                                                    ),
+                                                    onChanged: (value) {
+                                                      team1Score =
+                                                          int.tryParse(value) ??
+                                                          0;
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Container(
+                                              width: 100,
+                                              child: Column(
+                                                children: [
+                                                  Text(match.team2.teamName),
+                                                  SizedBox(height: 8),
+                                                  TextField(
+                                                    keyboardType:
+                                                        TextInputType.number,
+                                                    decoration: InputDecoration(
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                      hintText: 'Score',
+                                                    ),
+                                                    onChanged: (value) {
+                                                      team2Score =
+                                                          int.tryParse(value) ??
+                                                          0;
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
+                                        SizedBox(height: 16),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Change Teams',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Spacer(),
+                                            Switch(
+                                              value: changingTeams,
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  changingTeams = value;
+                                                });
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 16),
+                                        if (changingTeams)
+                                          Text(
+                                            'Edit Teams',
+                                            style: TextStyle(fontSize: 16),
+                                          ),
+
+                                        SizedBox(width: 16),
+
+                                        if (changingTeams)
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              // dropdown for team1
+                                              DropdownButton<String>(
+                                                value: match.team1.teamId,
+                                                items: widget.tournament.teams
+                                                    .map(
+                                                      (team) =>
+                                                          DropdownMenuItem<
+                                                            String
+                                                          >(
+                                                            value: team.teamId,
+                                                            child: Text(
+                                                              team.teamName,
+                                                            ),
+                                                          ),
+                                                    )
+                                                    .toList(),
+                                                onChanged: (value) {
+                                                  if (value != null) {
+                                                    setState(() {
+                                                      newTeam1 = value;
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                              SizedBox(width: 16),
+                                              // dropdown for team2
+                                              DropdownButton<String>(
+                                                value: match.team2.teamId,
+                                                items: widget.tournament.teams
+                                                    .map(
+                                                      (team) =>
+                                                          DropdownMenuItem<
+                                                            String
+                                                          >(
+                                                            value: team.teamId,
+                                                            child: Text(
+                                                              team.teamName,
+                                                            ),
+                                                          ),
+                                                    )
+                                                    .toList(),
+                                                onChanged: (value) {
+                                                  if (value != null) {
+                                                    setState(() {
+                                                      newTeam2 = value;
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                       ],
                                     ),
                                   ),
-                                  Container(
-                                    width: 100,
-                                    child: Column(
-                                      children: [
-                                        Text(match.team2.teamName),
-                                        TextField(
-                                          keyboardType: TextInputType.number,
-                                          decoration: InputDecoration(
-                                            border: OutlineInputBorder(),
-                                            hintText: 'Score',
-                                          ),
-                                          onChanged: (value) {
-                                            team2Score =
-                                                int.tryParse(value) ?? 0;
-                                          },
-                                        ),
-                                      ],
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Cancel'),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  // Save scores logic
-                                  await updateMatchScore(
-                                    tournamentId: widget.tournament.id,
-                                    roundId: round.id,
-                                    matchId: match.id,
-                                    team1Score: team1Score,
-                                    team2Score: team2Score,
-                                  );
-                                  Navigator.of(context).pop();
-                                },
-                                child: const Text('Save'),
-                              ),
-                            ],
-                          ),
+                                    TextButton(
+                                      onPressed: () async {
+                                        if (changingTeams) {
+                                          // Update teams logic
+                                          await updateMatchTeams(
+                                            tournamentId: widget.tournament.id,
+                                            roundId: round.id,
+                                            matchId: match.id,
+                                            newTeam1Id: newTeam1,
+                                            newTeam2Id: newTeam2,
+                                          );
+                                        }
+                                        // Save scores logic
+                                        else {
+                                          await updateMatchScore(
+                                            tournamentId: widget.tournament.id,
+                                            roundId: round.id,
+                                            matchId: match.id,
+                                            team1Score: team1Score,
+                                            team2Score: team2Score,
+                                          );
+                                        }
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Save'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
                         );
                       }
                     },
