@@ -32,6 +32,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
   bool isCustomTeams = false;
   bool choosingFinalist = false;
   bool makeGroups = false;
+  bool arePlayersSelected = false;
 
   Team finalistTeam = Team(
     teamId: "not_selected",
@@ -265,19 +266,94 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
     try {
       // find the finalist team from the teams list
-      if (finalistTeam.teamId != "not_selected") {
+      if (finalistTeam.teamId != "not_selected" && groups.isNotEmpty) {
+        var totalTeamsInG;
+        for (var group in groups) {
+          if (group.teams.any((team) => team.teamId == finalistTeam.teamId)) {
+            final totalTeamsInGroup = group.teams.length;
+            totalTeamsInG = totalTeamsInGroup;
+
+            final simulatedMatches = totalTeamsInGroup - 1;
+            final avgGoalsForPerMatch = 3;
+            final avgGoalsAgainstPerMatch = 0;
+
+            final simulatedPlayed = simulatedMatches;
+            final simulatedWins = simulatedMatches;
+            final simulatedDraws = 0;
+            final simulatedLosses = 0;
+            final simulatedGoalsFor = simulatedMatches * avgGoalsForPerMatch;
+            final simulatedGoalsAgainst =
+                simulatedMatches * avgGoalsAgainstPerMatch;
+            group.teams.removeWhere(
+              (team) => team.teamId == finalistTeam.teamId,
+            );
+            group.teams.add(
+              Team(
+                teamId: finalistTeam.teamId,
+                teamName: finalistTeam.teamName,
+                playerIdsTeam: finalistTeam.playerIdsTeam,
+                played: simulatedPlayed,
+                wins: simulatedWins,
+                draws: simulatedDraws,
+                losses: simulatedLosses,
+                goalsFor: simulatedGoalsFor,
+                goalsAgainst: simulatedGoalsAgainst,
+              ),
+            );
+          }
+        }
+
+        final ssimulatedMatches = totalTeamsInG - 1;
+        final avgGoalsForPerMatch = 1;
+        final avgGoalsAgainstPerMatch = 0;
+        final ssimulatedPlayed = ssimulatedMatches;
+        final ssimulatedWins = ssimulatedMatches;
+        final ssimulatedDraws = 0;
+        final ssimulatedLosses = 0;
+        final ssimulatedGoalsFor = ssimulatedMatches * avgGoalsForPerMatch;
+        final ssimulatedGoalsAgainst =
+            ssimulatedMatches * avgGoalsAgainstPerMatch;
+
         teams.removeWhere((team) => team.teamId == finalistTeam.teamId);
         teams.add(
           Team(
             teamId: finalistTeam.teamId,
             teamName: finalistTeam.teamName,
             playerIdsTeam: finalistTeam.playerIdsTeam,
-            played: finalistTeam.played,
-            wins: 20,
-            draws: finalistTeam.draws,
-            losses: finalistTeam.losses,
-            goalsFor: finalistTeam.goalsFor,
-            goalsAgainst: finalistTeam.goalsAgainst,
+            played: ssimulatedPlayed,
+            wins: ssimulatedWins,
+            draws: ssimulatedDraws,
+            losses: ssimulatedLosses,
+            goalsFor: ssimulatedGoalsFor,
+            goalsAgainst: ssimulatedGoalsAgainst,
+          ),
+        );
+      } else if (finalistTeam.teamId != "not_selected") {
+        final totalTeamsInGroup = teams.length;
+
+        final simulatedMatches = totalTeamsInGroup - 1;
+        final avgGoalsForPerMatch = 1;
+        final avgGoalsAgainstPerMatch = 0;
+
+        final simulatedPlayed = simulatedMatches;
+        final simulatedWins = simulatedMatches;
+        final simulatedDraws = 0;
+        final simulatedLosses = 0;
+        final simulatedGoalsFor = simulatedMatches * avgGoalsForPerMatch;
+        final simulatedGoalsAgainst =
+            simulatedMatches * avgGoalsAgainstPerMatch;
+        teams.removeWhere((team) => team.teamId == finalistTeam.teamId);
+        teams.add(
+          Team(
+            teamId: finalistTeam.teamId,
+            teamName: finalistTeam.teamName,
+            playerIdsTeam: finalistTeam.playerIdsTeam,
+            played: simulatedPlayed,
+            wins: simulatedWins,
+            draws: simulatedDraws,
+            losses: simulatedLosses,
+            goalsFor: simulatedGoalsFor,
+            goalsAgainst: simulatedGoalsAgainst,
           ),
         );
       }
@@ -302,10 +378,6 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             'groups': groups.map((group) => group.toMap()).toList(),
           })
           .then((onValue) async {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Tournament created successfully')),
-            );
-
             // Update tournamentsPlayed for each player
 
             // create a list of playerIds from teams
@@ -314,6 +386,9 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               playerIds.addAll(team.playerIdsTeam);
             }
             await updateTournamentsPlayedForPlayers(playerIds);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Tournament created successfully')),
+            );
 
             Navigator.pop(context); // Close the create tournament page
           })
@@ -345,8 +420,8 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
     if (type == 'Round Robin') {
       rounds = _generateRoundRobin(teams);
-    } else if (type == 'Single Elimination') {
-      // rounds = _generateSingleElimination(players);
+    } else if (type == 'Group Format') {
+      rounds = _generateGroupFormat(groups);
     } else if (type == 'Double Elimination') {
       // rounds = _generateDoubleElimination(players);
     }
@@ -354,9 +429,173 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     return rounds;
   }
 
-  List<Map<String, dynamic>> _generateRoundRobin(List<Team> players) {
+  List<Map<String, dynamic>> _generateGroupFormat(List<Group> groups) {
+    if (finalistTeam.teamId != "not_selected") {
+      List<Map<String, dynamic>> r = [];
+      for (var group in groups) {
+        List<Team> teamList = List.from(group.teams);
+
+        teamList.removeWhere((team) => team.teamId == finalistTeam.teamId);
+
+        if (teamList.length.isOdd) {
+          teamList.add(
+            Team(
+              teamId: DateTime.now().millisecondsSinceEpoch.toString(),
+              teamName: "BYE",
+              playerIdsTeam: ["BYE"],
+              played: 0,
+              wins: 0,
+              draws: 0,
+              losses: 0,
+              goalsFor: 0,
+              goalsAgainst: 0,
+            ),
+          );
+        }
+
+        int numTeams = teamList.length;
+        int numRounds = numTeams - 1; // Total rounds
+        int halfSize = numTeams ~/ 2;
+
+        // List<Map<String, dynamic>> rounds = [];
+
+        // Create a list to rotate players
+        List<Team> rotation = List.from(teamList);
+
+        for (int round = 0; round < numRounds; round++) {
+          List<Map<String, dynamic>> matches = [];
+
+          for (int i = 0; i < halfSize; i++) {
+            Team home = rotation[i];
+            Team away = rotation[numTeams - 1 - i];
+
+            List<String> tplayerIds = [];
+            if (home.playerIdsTeam.isNotEmpty) {
+              tplayerIds.addAll(home.playerIdsTeam);
+            }
+            if (away.playerIdsTeam.isNotEmpty) {
+              tplayerIds.addAll(away.playerIdsTeam);
+            }
+            // if ((home.teamName == 'BYE' &&
+            //         away.teamId != finalistTeam.teamId) ||
+            //     (away.teamName == 'BYE' &&
+            //         home.teamId != finalistTeam.teamId)) {
+            //   continue;
+            // }
+
+            if (home.playerIdsTeam != ["BYE"] &&
+                away.playerIdsTeam != ["BYE"]) {
+              matches.add({
+                'id': '${group.name}_match_${round + 1}_$i',
+                'type': 'singles',
+                'status': 'upcoming',
+                'playerIds': tplayerIds,
+                'team1': home.toMap(),
+                'team2': away.toMap(),
+                'scores': {home.teamName: 0, away.teamName: 0},
+                'winner': '',
+              });
+              // matches.add({
+              //   "player1": home,
+              //   "player2": away,
+              // });
+            }
+          }
+
+          r.add({
+            'id': '${group.name}_round_${round + 1}',
+            'name': '${group.name} - Round ${round + 1}',
+            "roundNumber": round + 1,
+            "matches": matches,
+          });
+
+          // Rotate players for next round
+          var lastPlayer = rotation.removeLast();
+          rotation.insert(1, lastPlayer);
+        }
+      }
+
+      return r;
+    } else // if not singles , then doubles -------------
+    {
+      List<Map<String, dynamic>> r = [];
+      for (var group in groups) {
+        List<Team> teamList = List.from(group.teams);
+
+        if (teamList.length.isOdd) {
+          teamList.add(
+            Team(
+              teamId: DateTime.now().millisecondsSinceEpoch.toString(),
+              teamName: "BYE",
+              playerIdsTeam: ["BYE"],
+              played: 0,
+              wins: 0,
+              draws: 0,
+              losses: 0,
+              goalsFor: 0,
+              goalsAgainst: 0,
+            ),
+          );
+        }
+
+        int numPlayers = teamList.length;
+        int numRounds = numPlayers - 1; // Total rounds
+        int halfSize = numPlayers ~/ 2;
+
+        // List<Map<String, dynamic>> rounds = [];
+
+        // Create a list to rotate players
+        List<Team> rotation = List.from(teamList);
+
+        for (int round = 0; round < numRounds; round++) {
+          List<Map<String, dynamic>> matches = [];
+
+          for (int i = 0; i < halfSize; i++) {
+            Team home = rotation[i];
+            Team away = rotation[numPlayers - 1 - i];
+
+            List<String> tplayerIds = [];
+            if (home.playerIdsTeam.isNotEmpty) {
+              tplayerIds.addAll(home.playerIdsTeam);
+            }
+            if (away.playerIdsTeam.isNotEmpty) {
+              tplayerIds.addAll(away.playerIdsTeam);
+            }
+            if (home.playerIdsTeam != ["BYE"] &&
+                away.playerIdsTeam != ["BYE"]) {
+              matches.add({
+                'id': '${group.name}_match_${round + 1}_$i',
+                'type': 'doubles',
+                'status': 'upcoming',
+                'playerIds': tplayerIds,
+                'team1': home.toMap(),
+                'team2': away.toMap(),
+                'scores': {home.teamName: 0, away.teamName: 0},
+                'winner': '',
+              });
+            }
+          }
+
+          r.add({
+            'id': '${group.name}round_${round + 1}',
+            'name': '${group.name} - Round ${round + 1}',
+            "roundNumber": round + 1,
+            "matches": matches,
+          });
+
+          // Rotate players for next round
+          var lastPlayer = rotation.removeLast();
+          rotation.insert(1, lastPlayer);
+        }
+      }
+
+      return r;
+    }
+  }
+
+  List<Map<String, dynamic>> _generateRoundRobin(List<Team> teams) {
     if (isDoubles == false) {
-      List<Team> teamList = List.from(players);
+      List<Team> teamList = List.from(teams);
 
       // Add a dummy "BYE" if odd number of players
       bool hasBye = false;
@@ -413,10 +652,6 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               'scores': {home.teamName: 0, away.teamName: 0},
               'winner': '',
             });
-            // matches.add({
-            //   "player1": home,
-            //   "player2": away,
-            // });
           }
         }
 
@@ -434,7 +669,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
       return rounds;
     }
-    // chosen finalist
+    // chosen finalist ---------------------------
     else if (finalistTeam.teamId != "not_selected") {
       List<Team> teamList = List.from(teams);
 
@@ -515,7 +750,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       }
 
       return rounds;
-    } else // if not singles , then doubles
+    } else // if not singles , then doubles -------------
     {
       List<Team> teamList = List.from(teams);
 
@@ -668,236 +903,270 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Create Tournament')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Tournament Name'),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Enter a name' : null,
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: _selectedType,
-                items: const [
-                  DropdownMenuItem(
-                    value: 'Round Robin',
-                    child: Text('Round Robin'),
-                  ),
-                  // DropdownMenuItem(
-                  //   value: 'Single Elimination',
-                  //   child: Text('Single Elimination'),
-                  // ),
-                  // DropdownMenuItem(
-                  //   value: 'Double Elimination',
-                  //   child: Text('Double Elimination'),
-                  // ),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedType = value;
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Tournament Type'),
-                validator: (value) =>
-                    value == null ? 'Select a tournament type' : null,
-              ),
-              const SizedBox(height: 10),
-              // add a toggle for doubles
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: arePlayersSelected == true
+          ? showBody()
+          : Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListView(
                 children: [
-                  const Text('Doubles'),
-                  Switch(
-                    value: isDoubles,
-                    onChanged: (value) {
+                  SizedBox(height: 10),
+                  const Text(
+                    'Select Players:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+                  _buildPlayerList(),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
                       setState(() {
-                        isDoubles = value;
+                        arePlayersSelected = true;
                       });
                     },
+                    child: const Text('Continue'),
                   ),
                 ],
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Custom Teams'),
-                  Switch(
-                    value: isCustomTeams,
-                    onChanged: (value) {
-                      setState(() {
-                        isCustomTeams = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Choose Finalist'),
-                  Switch(
-                    value: choosingFinalist,
-                    onChanged: (value) {
-                      setState(() {
-                        choosingFinalist = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Make Groups'),
-                  Switch(
-                    value: makeGroups,
-                    onChanged: (value) {
-                      setState(() {
-                        makeGroups = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _dateController,
-                decoration: const InputDecoration(
-                  labelText: 'Start Date (YYYY-MM-DD)',
+            ),
+    );
+  }
+
+  Widget showBody() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Form(
+        key: _formKey,
+        child: ListView(
+          children: [
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Tournament Name'),
+              validator: (value) =>
+                  value == null || value.trim().isEmpty ? 'Enter a name' : null,
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: _selectedType,
+              items: const [
+                DropdownMenuItem(
+                  value: 'Round Robin',
+                  child: Text('Round Robin'),
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Enter a date' : null,
-              ),
-              if (choosingFinalist == true)
-                // Display the custom teams created is ListView
-                Column(
-                  children: teams.map((team) {
-                    return ListTile(
-                      title: Row(
-                        children: [
-                          Text(team.teamName),
-                          Spacer(),
-
-                          if (teams.length.isOdd)
-                            Checkbox(
-                              value: team.teamId == finalistTeam.teamId,
-                              onChanged: (value) {
-                                setState(() {
-                                  if (value == true) {
-                                    finalistTeam = team;
-                                    finalistTeam = Team(
-                                      teamId: team.teamId,
-                                      teamName: team.teamName,
-                                      playerIdsTeam: team.playerIdsTeam,
-                                      played: team.played,
-                                      wins: 20,
-                                      draws: team.draws,
-                                      losses: team.losses,
-                                      goalsFor: team.goalsFor,
-                                      goalsAgainst: team.goalsAgainst,
-                                    );
-                                  } else {
-                                    finalistTeam = Team(
-                                      teamId: "bye_1",
-                                      teamName: "BYE",
-                                      playerIdsTeam: ["BYE"],
-                                      played: 0,
-                                      wins: 0,
-                                      draws: 0,
-                                      losses: 0,
-                                      goalsFor: 0,
-                                      goalsAgainst: 0,
-                                    );
-                                  }
-                                });
-                              },
-                            ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                DropdownMenuItem(
+                  value: 'Group Format',
+                  child: Text('Group Format'),
                 ),
-
-              const SizedBox(height: 10),
-              if (isCustomTeams == false) const Text('Select Players:'),
-              if (isCustomTeams == false) _buildPlayerList(),
-              const SizedBox(height: 20),
-              if (isCustomTeams == true)
-                ElevatedButton(
-                  onPressed: () async {
-                    // Navigate to Custom Teams Page
-
-                    teams = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateTeamsPage(),
-                      ),
-                    );
-                    if (teams.isNotEmpty) {
-                      teamsCreated = true;
-                    }
+                // DropdownMenuItem(
+                //   value: 'Single Elimination',
+                //   child: Text('Single Elimination'),
+                // ),
+                // DropdownMenuItem(
+                //   value: 'Double Elimination',
+                //   child: Text('Double Elimination'),
+                // ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedType = value;
+                });
+              },
+              decoration: const InputDecoration(labelText: 'Tournament Type'),
+              validator: (value) =>
+                  value == null ? 'Select a tournament type' : null,
+            ),
+            const SizedBox(height: 10),
+            // add a toggle for doubles
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Doubles'),
+                Switch(
+                  value: isDoubles,
+                  onChanged: (value) {
+                    setState(() {
+                      isDoubles = value;
+                    });
                   },
-                  child: Text('Create Custom Teams'),
                 ),
-              if (isCustomTeams == false)
-                ElevatedButton(
-                  onPressed: () {
-                    teamsCreated = true;
-                    if (_selectedPlayerIds.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please select players to form teams.'),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Custom Teams'),
+                Switch(
+                  value: isCustomTeams,
+                  onChanged: (value) {
+                    setState(() {
+                      isCustomTeams = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Choose Finalist'),
+                Switch(
+                  value: choosingFinalist,
+                  onChanged: (value) {
+                    setState(() {
+                      choosingFinalist = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Make Groups'),
+                Switch(
+                  value: makeGroups,
+                  onChanged: (value) {
+                    setState(() {
+                      makeGroups = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _dateController,
+              decoration: const InputDecoration(
+                labelText: 'Start Date (YYYY-MM-DD)',
+              ),
+              validator: (value) =>
+                  value == null || value.trim().isEmpty ? 'Enter a date' : null,
+            ),
+            if (choosingFinalist == true)
+              // Display the custom teams created is ListView
+              Column(
+                children: teams.map((team) {
+                  return ListTile(
+                    title: Row(
+                      children: [
+                        Text(team.teamName),
+                        Spacer(),
+
+                        // if (teams.length.isOdd)
+                        Checkbox(
+                          value: team.teamId == finalistTeam.teamId,
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                finalistTeam = team;
+                                finalistTeam = Team(
+                                  teamId: team.teamId,
+                                  teamName: team.teamName,
+                                  playerIdsTeam: team.playerIdsTeam,
+                                  played: team.played,
+                                  wins: 20,
+                                  draws: team.draws,
+                                  losses: team.losses,
+                                  goalsFor: team.goalsFor,
+                                  goalsAgainst: team.goalsAgainst,
+                                );
+                              } else {
+                                finalistTeam = Team(
+                                  teamId: "bye_1",
+                                  teamName: "BYE",
+                                  playerIdsTeam: ["BYE"],
+                                  played: 0,
+                                  wins: 0,
+                                  draws: 0,
+                                  losses: 0,
+                                  goalsFor: 0,
+                                  goalsAgainst: 0,
+                                );
+                              }
+                            });
+                          },
                         ),
-                      );
-                      return;
-                    } else {
-                      _showTeamDialog(context);
-                    }
-                  },
-                  child: Text(isDoubles ? 'Generate Teams' : 'Shuffle Players'),
-                ),
-              if (makeGroups == true)
-                ElevatedButton(
-                  onPressed: () async {
-                    // Navigate to Custom Teams Page
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
 
-                    groups = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GroupingWidget(teams: teams),
+            // const SizedBox(height: 10),
+            // if (isCustomTeams == false) const Text('Select Players:'),
+            // if (isCustomTeams == false) _buildPlayerList(),
+            const SizedBox(height: 20),
+            if (isCustomTeams == true)
+              ElevatedButton(
+                onPressed: () async {
+                  // Navigate to Custom Teams Page
+
+                  teams = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          CreateTeamsPage(selectedPlayers: _selectedPlayerIds),
+                    ),
+                  );
+                  if (teams.isNotEmpty) {
+                    teamsCreated = true;
+                  }
+                },
+                child: Text('Create Custom Teams'),
+              ),
+            if (isCustomTeams == false)
+              ElevatedButton(
+                onPressed: () {
+                  teamsCreated = true;
+                  if (_selectedPlayerIds.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please select players to form teams.'),
                       ),
                     );
-                  },
-                  child: Text('Create Groups '),
-                ),
-              const SizedBox(height: 20),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: () {
-                        if (teamsCreated == false) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please generate teams first.'),
-                            ),
-                          );
-                          return;
-                        } else {
-                          _createTournament();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                      ),
-                      child: const Text('Create Tournament'),
+                    return;
+                  } else {
+                    _showTeamDialog(context);
+                  }
+                },
+                child: Text(isDoubles ? 'Generate Teams' : 'Shuffle Players'),
+              ),
+            const SizedBox(height: 20),
+            if (makeGroups == true)
+              ElevatedButton(
+                onPressed: () async {
+                  // Navigate to Custom Teams Page
+
+                  groups = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GroupingWidget(teams: teams),
                     ),
-            ],
-          ),
+                  );
+                },
+                child: Text('Create Groups '),
+              ),
+            const SizedBox(height: 20),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+                    onPressed: () {
+                      if (teamsCreated == false) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please generate teams first.'),
+                          ),
+                        );
+                        return;
+                      } else {
+                        _createTournament();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    child: const Text('Create Tournament'),
+                  ),
+          ],
         ),
       ),
     );

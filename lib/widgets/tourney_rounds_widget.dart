@@ -102,7 +102,7 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                       ),
                     ),
 
-                    trailing: Icon(Icons.edit, color: Colors.grey),
+                    trailing: widget.isAdmin ? Icon(Icons.edit, color: Colors.grey) : null,
                     onTap: () {
                       if (widget.isAdmin) {
                         int team1Score = match.scores.team1;

@@ -4,9 +4,10 @@ import 'package:tourney_app/models/player.dart';
 import 'package:tourney_app/models/team.dart';
 
 class CreateTeamsPage extends StatefulWidget {
-  // final List<Player> allPlayers;
+  final List<String> selectedPlayers;
 
-  const CreateTeamsPage({Key? key}) : super(key: key);
+  const CreateTeamsPage({Key? key, required this.selectedPlayers})
+    : super(key: key);
 
   @override
   _CreateTeamsPageState createState() => _CreateTeamsPageState();
@@ -20,19 +21,24 @@ class _CreateTeamsPageState extends State<CreateTeamsPage> {
   @override
   void initState() {
     super.initState();
-    fetchPlayers();
+    fetchPlayers(widget.selectedPlayers);
   }
 
-  Future<void> fetchPlayers() async {
+  Future<void> fetchPlayers(List<String> selectedPlayerIds) async {
     final snapshot = await FirebaseFirestore.instance
         .collection('players')
         .get();
     final players = snapshot.docs
         .map((doc) => Player.fromFirestore(doc.data(), doc.id))
         .toList();
-    setState(() {
-      allPlayers = players;
-    });
+    for (var player in players) {
+      if (selectedPlayerIds.contains(player.id)) {
+        setState(() {
+          // allPlayers = players;
+          allPlayers.add(player);
+        });
+      }
+    }
   }
 
   void _addTeam() {

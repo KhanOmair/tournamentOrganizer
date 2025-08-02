@@ -240,7 +240,10 @@ class _TournamentDetailPageState extends State<TournamentDetailPage>
                           snapshot.data!.id,
                         );
 
-                        return StandingsTable(teams: mtournament.teams);
+                        return StandingsTable(
+                          teams: mtournament.teams,
+                          groups: mtournament.groups,
+                        );
                       },
                     ),
                   ),
@@ -310,31 +313,31 @@ class _TournamentDetailPageState extends State<TournamentDetailPage>
           ],
         ),
       ),
-      floatingActionButton:
-          widget.isAdmin &&
-              matchesLeft == 0
-              // &&
-              // _tabController.index == 1
-              &&
-              widget.tournament.rounds.last.name != 'Final'
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 15.0),
-              child: FloatingActionButton.extended(
-                backgroundColor: Colors.deepOrangeAccent,
-                label: const Text('Create Final'),
-                onPressed: () async {
-                  try {
-                    await createFinalMatch(widget.tournament.id);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error creating final match: $e')),
-                    );
-                  }
-                },
-              ),
-            )
-          : SizedBox.shrink(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // floatingActionButton:
+      //     widget.isAdmin &&
+      //         matchesLeft == 0
+      //         // &&
+      //         // _tabController.index == 1
+      //         &&
+      //         widget.tournament.rounds.last.name != 'Final'
+      //     ? Padding(
+      //         padding: const EdgeInsets.only(bottom: 15.0),
+      //         child: FloatingActionButton.extended(
+      //           backgroundColor: Colors.deepOrangeAccent,
+      //           label: const Text('Create Final'),
+      //           onPressed: () async {
+      //             try {
+      //               await createFinalMatch(widget.tournament.id);
+      //             } catch (e) {
+      //               ScaffoldMessenger.of(context).showSnackBar(
+      //                 SnackBar(content: Text('Error creating final match: $e')),
+      //               );
+      //             }
+      //           },
+      //         ),
+      //       )
+      //     : SizedBox.shrink(),
+      // floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 }
