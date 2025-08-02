@@ -274,7 +274,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             totalTeamsInG = totalTeamsInGroup;
 
             final simulatedMatches = totalTeamsInGroup - 1;
-            final avgGoalsForPerMatch = 3;
+            final avgGoalsForPerMatch = 1;
             final avgGoalsAgainstPerMatch = 0;
 
             final simulatedPlayed = simulatedMatches;
