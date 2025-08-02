@@ -451,19 +451,21 @@ class _HomePageState extends State<HomePage> {
           }
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        // backgroundColor: Colors.green,
-        onPressed: () {
-          // Will connect to Add Tournament/Player later
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CreateTournamentPage(),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: loggedInPlayer!.isAdmin
+          ? FloatingActionButton(
+              // backgroundColor: Colors.green,
+              onPressed: () {
+                // Will connect to Add Tournament/Player later
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreateTournamentPage(),
+                  ),
+                );
+              },
+              child: const Icon(Icons.add),
+            )
+          : Container(),
     );
   }
 }
