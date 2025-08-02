@@ -17,6 +17,8 @@ class _SignupPageState extends State<SignupPage> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
 
+  final _formKey = GlobalKey<FormState>();
+
   bool _isLoading = false;
 
   Future<void> _signup() async {
@@ -85,49 +87,67 @@ class _SignupPageState extends State<SignupPage> {
       appBar: AppBar(title: const Text('Sign Up')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 12),
-            TextField(
-              controller: _firstNameController,
-              decoration: const InputDecoration(labelText: 'First Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _lastNameController,
-              decoration: const InputDecoration(labelText: 'Last Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Preferred Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
-            ),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _signup,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: const Text(
-                        'Sign Up',
-                        style: TextStyle(fontSize: 18),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _firstNameController,
+                decoration: const InputDecoration(labelText: 'First Name'),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter first name'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(labelText: 'Last Name'),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter last name'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Preferred Name'),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter a name'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter an email'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password'),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter a password'
+                    : null,
+              ),
+              const SizedBox(height: 20),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _signup,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: const Text(
+                          'Sign Up',
+                          style: TextStyle(fontSize: 18),
+                        ),
                       ),
                     ),
-                  ),
-          ],
+            ],
+          ),
         ),
       ),
     );

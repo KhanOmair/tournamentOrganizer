@@ -207,9 +207,11 @@ class _HomePageState extends State<HomePage> {
             );
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || fetchedTournaments.isEmpty) {
-            return const Center(child: Text('No tournaments found.'));
-          } else {
+          }
+          // else if (!snapshot.hasData || fetchedTournaments.isEmpty) {
+          //   return const Center(child: Text('No tournaments found.'));
+          // }
+          else {
             fetchedTournaments = snapshot.data!;
             final upcomingTournaments = fetchedTournaments
                 .where((t) => t.status.toLowerCase() == 'upcoming')
