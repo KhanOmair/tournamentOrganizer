@@ -9,6 +9,7 @@ class GameMatch {
   final String winner; // team1 | team2
   final Team team1;
   final Team team2;
+  final String streamUrl;
 
   GameMatch({
     required this.id,
@@ -19,6 +20,7 @@ class GameMatch {
     required this.winner,
     required this.team1,
     required this.team2,
+    required this.streamUrl,
   });
 
   factory GameMatch.fromFirestore(Map<String, dynamic> data, String docId) {
@@ -31,6 +33,7 @@ class GameMatch {
       playerIds: List<String>.from(data['playerIds'] ?? []),
       scores: MatchScore.fromMap(data['scores'] ?? {}),
       winner: data['winner'] ?? '',
+      streamUrl: data['streamUrl'] ?? '',
     );
   }
 
@@ -44,6 +47,7 @@ class GameMatch {
       'playerIds': playerIds,
       'scores': scores.toMap(),
       'winner': winner,
+      'streamUrl': streamUrl,
     };
   }
 }

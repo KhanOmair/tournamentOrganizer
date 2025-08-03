@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/utils/match_crud.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TournamentRoundsWidget extends StatefulWidget {
   final Tournament tournament;
@@ -101,9 +102,40 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                         ],
                       ),
                     ),
+                    subtitle: // Display stream URL if available
+                    match.streamUrl.trim().isNotEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              launchUrl(
+                                Uri.parse(match.streamUrl),
+                                mode: LaunchMode.externalApplication,
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16.0,
+                                right: 16,
+                                top: 16,
+                                bottom: 2,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Stream URL: ${match.streamUrl}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : null,
 
-                    trailing: widget.isAdmin ? Icon(Icons.edit, color: Colors.grey) : null,
+                    trailing: widget.isAdmin
+                        ? Icon(Icons.edit, color: Colors.grey)
+                        : null,
                     onTap: () {
+                      String streamUrl = '';
                       if (widget.isAdmin) {
                         int team1Score = match.scores.team1;
                         int team2Score = match.scores.team2;
@@ -259,6 +291,16 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                               ),
                                             ],
                                           ),
+                                        TextField(
+                                          decoration: InputDecoration(
+                                            border: OutlineInputBorder(),
+                                            hintText:
+                                                'Update the Stream Url (if any)',
+                                          ),
+                                          onChanged: (value) {
+                                            streamUrl = value;
+                                          },
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -272,6 +314,16 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                     TextButton(
                                       onPressed: () async {
                                         if (changingTeams) {
+                                          if (streamUrl.trim().isNotEmpty) {
+                                            // Update stream URL logic
+                                            await updateMatchStreamUrl(
+                                              tournamentId:
+                                                  widget.tournament.id,
+                                              roundId: round.id,
+                                              matchId: match.id,
+                                              streamUrl: streamUrl,
+                                            );
+                                          }
                                           // Update teams logic
                                           await updateMatchTeams(
                                             tournamentId: widget.tournament.id,
@@ -283,6 +335,16 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                         }
                                         // Save scores logic
                                         else {
+                                          if (streamUrl.trim().isNotEmpty) {
+                                            // Update stream URL logic
+                                            await updateMatchStreamUrl(
+                                              tournamentId:
+                                                  widget.tournament.id,
+                                              roundId: round.id,
+                                              matchId: match.id,
+                                              streamUrl: streamUrl,
+                                            );
+                                          }
                                           await updateMatchScore(
                                             tournamentId: widget.tournament.id,
                                             roundId: round.id,
