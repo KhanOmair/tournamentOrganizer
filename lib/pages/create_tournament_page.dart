@@ -494,6 +494,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 'team2': away.toMap(),
                 'scores': {home.teamName: 0, away.teamName: 0},
                 'winner': '',
+                'streamUrl': '',
               });
               // matches.add({
               //   "player1": home,
@@ -572,6 +573,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 'team2': away.toMap(),
                 'scores': {home.teamName: 0, away.teamName: 0},
                 'winner': '',
+                'streamUrl': '',
               });
             }
           }
@@ -651,6 +653,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               'team2': away.toMap(),
               'scores': {home.teamName: 0, away.teamName: 0},
               'winner': '',
+              'streamUrl': '',
             });
           }
         }
@@ -729,6 +732,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               'team2': away.toMap(),
               'scores': {home.teamName: 0, away.teamName: 0},
               'winner': '',
+              'streamUrl': '',
             });
             // matches.add({
             //   "player1": home,
@@ -803,6 +807,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               'team2': away.toMap(),
               'scores': {home.teamName: 0, away.teamName: 0},
               'winner': '',
+              'streamUrl': '',
             });
             // matches.add({
             //   "player1": home,
@@ -850,6 +855,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
           'playerIds': matchPlayers,
           'scores': {'team1': 0, 'team2': 0},
           'winner': '',
+          'streamUrl': '',
         });
       }
 
@@ -887,6 +893,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         'playerIds': matchPlayers,
         'scores': {'team1': 0, 'team2': 0},
         'winner': '',
+        'streamUrl': '',
       });
     }
 

@@ -124,6 +124,7 @@ Future<void> updateMatchScore({
       winner: winner,
       team1: updatedTeam1,
       team2: updatedTeam2,
+      streamUrl: match.streamUrl,
     );
 
     // Update players' global stats
@@ -374,4 +375,43 @@ Future<void> updateMatchTeams({
   };
 
   await tournamentRef.update(data);
+}
+
+
+Future<void> updateMatchStreamUrl({
+  required String tournamentId,
+  required String roundId,
+  required String matchId,
+  required String streamUrl,
+}) async {
+  final tournamentRef = FirebaseFirestore.instance
+      .collection('tournaments')
+      .doc(tournamentId);
+
+  final snapshot = await tournamentRef.get();
+  final data = snapshot.data();
+
+  if (data == null) {
+    throw Exception('Tournament not found');
+  }
+
+  // Find round index
+  final rounds = data['rounds'] as List;
+  final roundIndex = rounds.indexWhere((round) => round['id'] == roundId);
+  if (roundIndex == -1) {
+    throw Exception('Round not found');
+  }
+
+  // Find match index
+  final matches = rounds[roundIndex]['matches'] as List;
+  final matchIndex = matches.indexWhere((match) => match['id'] == matchId);
+  if (matchIndex == -1) {
+    throw Exception('Match not found');
+  }
+
+  // Update streamUrl
+  data['rounds'][roundIndex]['matches'][matchIndex]['streamUrl'] = streamUrl;
+
+  // Commit update
+  await tournamentRef.update({'rounds': data['rounds']});
 }
