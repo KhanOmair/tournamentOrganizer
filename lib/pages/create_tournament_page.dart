@@ -22,6 +22,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
   String? _selectedType;
   List<String> _selectedPlayerIds = [];
+  String? sport;
 
   List<Team> teams = [];
   List<Group> groups = [];
@@ -376,6 +377,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             'createdAt': FieldValue.serverTimestamp(),
             'teams': teams.map((team) => team.toMap()).toList(),
             'groups': groups.map((group) => group.toMap()).toList(),
+            'sport': sport,
           })
           .then((onValue) async {
             // Update tournamentsPlayed for each player
@@ -950,6 +952,26 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               decoration: const InputDecoration(labelText: 'Tournament Name'),
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Enter a name' : null,
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: sport,
+              items: const [
+                DropdownMenuItem(value: 'fifa', child: Text('FIFA')),
+                DropdownMenuItem(value: 'tekken', child: Text('Tekken')),
+                DropdownMenuItem(value: 'carrom', child: Text('Carrom')),
+                DropdownMenuItem(
+                  value: 'pickleball',
+                  child: Text('Pickle Ball'),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  sport = value;
+                });
+              },
+              decoration: const InputDecoration(labelText: 'Sport'),
+              validator: (value) => value == null ? 'Select a Sport' : null,
             ),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(

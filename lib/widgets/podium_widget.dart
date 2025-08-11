@@ -83,65 +83,57 @@ class PodiumWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+          if (groups.isNotEmpty)
+            ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: groups.length,
+              itemBuilder: (context, index) {
+                final group = groups[index];
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ExpansionTile(
+                    initiallyExpanded: true,
+                    title: Text(group.name),
+                    children: group.teams.map((team) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                        ),
+                        child: Card(
+                          child: ListTile(
+                            title: Text(team.teamName),
+                            // subtitle: Text('Wins: ${team.wins}'),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
+            ),
+
           ListView.builder(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
-            itemCount: groups.length,
+            itemCount: teams.length,
             itemBuilder: (context, index) {
-              final group = groups[index];
+              final team = teams[index];
               return Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: ExpansionTile(
-                  initiallyExpanded: true,
-                  title: Text(group.name),
-                  children: group.teams.map((team) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
-                      ),
-                      child: Card(
-                        child: ListTile(
-                          title: Text(team.teamName),
-                          // subtitle: Text('Wins: ${team.wins}'),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                child: Card(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(25.0),
+                      child: Text(team.teamName),
+                    ),
+                  ),
+                  // subtitle: Text('Points: ${team.points}'),
                 ),
               );
             },
           ),
-          // Expanded(
-          //   child: ListView.builder(
-          //             ),
-          //           ),
-          //           // subtitle: Text('Points: ${team.points}'),
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-          // Expanded(
-          //   child: ListView.builder(
-          //     itemCount: teams.length,
-          //     itemBuilder: (context, index) {
-          //       final team = teams[index];
-          //       return Padding(
-          //         padding: const EdgeInsets.all(8.0),
-          //         child: Card(
-          //           child: Center(
-          //             child: Padding(
-          //               padding: const EdgeInsets.all(25.0),
-          //               child: Text(team.teamName),
-          //             ),
-          //           ),
-          //           // subtitle: Text('Points: ${team.points}'),
-          //         ),
-          //       );
-          //     },
-          //   ),
-          // ),
         ],
       ),
     );
