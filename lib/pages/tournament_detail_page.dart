@@ -299,6 +299,7 @@ class _TournamentDetailPageState extends State<TournamentDetailPage>
                         return PodiumWidget(
                           teams: tournament.teams,
                           groups: tournament.groups,
+                          topScorers: tournament.topScorers,
                         );
                       },
                     ),
