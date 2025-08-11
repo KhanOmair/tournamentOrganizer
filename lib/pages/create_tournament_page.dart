@@ -26,6 +26,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
   List<Team> teams = [];
   List<Group> groups = [];
+  List topscorer = [];
 
   bool _isLoading = false;
   bool isDoubles = true;
@@ -364,6 +365,10 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         type: _selectedType!,
       );
 
+      if (sport == 'fifa') {
+        topscorer = await generateTopScorers(_selectedPlayerIds);
+      }
+
       // Save tournament (with rounds)
       await FirebaseFirestore.instance
           .collection('tournaments')
@@ -378,6 +383,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             'teams': teams.map((team) => team.toMap()).toList(),
             'groups': groups.map((group) => group.toMap()).toList(),
             'sport': sport,
+            'topScorers': topscorer,
           })
           .then((onValue) async {
             // Update tournamentsPlayed for each player
@@ -1269,5 +1275,16 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     }
 
     return name;
+  }
+
+  Future<List<Map<String, dynamic>>> generateTopScorers(
+    List<String> selectedPlayerIds,
+  ) async {
+    return Future.wait(
+      selectedPlayerIds.map((id) async {
+        final name = await getPlayerName(id);
+        return {'playerId': id, 'goals': 0, 'name': name};
+      }),
+    );
   }
 }

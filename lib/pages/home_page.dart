@@ -27,6 +27,8 @@ class _HomePageState extends State<HomePage> {
 
   final List<Tournament> tournaments = [
     Tournament(
+      topScorers: [],
+      sport: 'fifa',
       groups: [],
       participants: [],
       teams: [
@@ -108,7 +110,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             GameMatch(
-               streamUrl: 'http://example.com/stream1',
+              streamUrl: 'http://example.com/stream1',
               id: 'match2',
               type: 'doubles',
               status: 'upcoming',
