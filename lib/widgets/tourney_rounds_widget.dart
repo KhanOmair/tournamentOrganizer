@@ -149,8 +149,9 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                   title: Center(child: Text('Edit Scores')),
                                   content: SizedBox(
                                     width: 500,
-                                    height: 300,
+                                    // height: 300,
                                     child: Column(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Row(
                                           // mainAxisSize: MainAxisSize.min,
@@ -345,13 +346,19 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                               streamUrl: streamUrl,
                                             );
                                           }
-                                          await updateMatchScore(
-                                            tournamentId: widget.tournament.id,
-                                            roundId: round.id,
-                                            matchId: match.id,
-                                            team1Score: team1Score,
-                                            team2Score: team2Score,
-                                          );
+                                          if (match.winner.trim().isEmpty) {
+                                            await updateMatchScore(
+                                              tournamentId:
+                                                  widget.tournament.id,
+                                              roundId: round.id,
+                                              matchId: match.id,
+                                              team1Score: team1Score,
+                                              team2Score: team2Score,
+                                            );
+                                          } else {
+                                            print('Not Updating ');
+                                            // Navigator.of(context).pop();
+                                          }
                                         }
                                         Navigator.of(context).pop();
                                       },
