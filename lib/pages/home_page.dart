@@ -27,8 +27,10 @@ class _HomePageState extends State<HomePage> {
 
   final List<Tournament> tournaments = [
     Tournament(
+      topScorers: [],
       groups: [],
       participants: [],
+      sport: 'fifa',
       teams: [
         Team(
           teamId: 'team1',

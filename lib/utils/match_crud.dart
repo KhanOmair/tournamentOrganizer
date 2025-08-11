@@ -377,7 +377,6 @@ Future<void> updateMatchTeams({
   await tournamentRef.update(data);
 }
 
-
 Future<void> updateMatchStreamUrl({
   required String tournamentId,
   required String roundId,
@@ -414,4 +413,39 @@ Future<void> updateMatchStreamUrl({
 
   // Commit update
   await tournamentRef.update({'rounds': data['rounds']});
+}
+
+Future<void> addPlayerGoal({
+  required String tournamentId,
+  required String playerId,
+  // required String playerName,
+  // required String teamId,
+  required int goals,
+}) async {
+  final tournamentRef = FirebaseFirestore.instance
+      .collection('tournaments')
+      .doc(tournamentId);
+
+  await FirebaseFirestore.instance.runTransaction((transaction) async {
+    final snapshot = await transaction.get(tournamentRef);
+    final data = snapshot.data();
+    if (data == null) return;
+
+    List scorers = List.from(data['topScorers'] ?? []);
+
+    final index = scorers.indexWhere((p) => p['playerId'] == playerId);
+
+    if (index != -1) {
+      scorers[index]['goals'] += goals;
+    } else {
+      // scorers.add({
+      //   'playerId': playerId,
+      //   'playerName': playerName,
+      //   'teamId': teamId,
+      //   'goals': goals,
+      // });
+    }
+
+    transaction.update(tournamentRef, {'topScorers': scorers});
+  });
 }

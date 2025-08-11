@@ -139,6 +139,7 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                       if (widget.isAdmin) {
                         int team1Score = match.scores.team1;
                         int team2Score = match.scores.team2;
+                        List goals = [0, 0, 0, 0];
                         showDialog(
                           context: context,
                           builder: (context) {
@@ -149,8 +150,9 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                   title: Center(child: Text('Edit Scores')),
                                   content: SizedBox(
                                     width: 500,
-                                    height: 300,
+                                    // height: 600,
                                     child: Column(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Row(
                                           // mainAxisSize: MainAxisSize.min,
@@ -205,6 +207,121 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                             ),
                                           ],
                                         ),
+                                        if (widget.tournament.sport == 'fifa' &&
+                                            !match.playerIds.contains('BYE'))
+                                          SizedBox(height: 16),
+                                        if (widget.tournament.sport == 'fifa' &&
+                                            !match.playerIds.contains('BYE'))
+                                          Text(
+                                            'Goals Scored',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        // SizedBox(height: 12),
+                                        if (widget.tournament.sport == 'fifa' &&
+                                            !match.playerIds.contains('BYE'))
+                                          Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: ListView.builder(
+                                              shrinkWrap: true,
+                                              physics:
+                                                  const NeverScrollableScrollPhysics(),
+                                              itemCount: match.playerIds.length,
+                                              itemBuilder: (context, index) {
+                                                var scorer = widget
+                                                    .tournament
+                                                    .topScorers
+                                                    .firstWhere(
+                                                      (scorer) =>
+                                                          scorer.id ==
+                                                          match
+                                                              .playerIds[index],
+                                                      // orElse: () => null,
+                                                    );
+
+                                                return Card(
+                                                  child: ListTile(
+                                                    title: Text(scorer.name),
+                                                    trailing: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons.remove,
+                                                          ),
+                                                          onPressed: () async {
+                                                            // addPlayerGoal(
+                                                            //   tournamentId: widget
+                                                            //       .tournament
+                                                            //       .id,
+                                                            //   goals: -1,
+
+                                                            //   playerId: scorer.id,
+                                                            //   playerName:
+                                                            //       scorer.name,
+                                                            // );
+                                                            setState(() {
+                                                              goals[index]--;
+                                                            });
+
+                                                            await addPlayerGoal(
+                                                              tournamentId:
+                                                                  widget
+                                                                      .tournament
+                                                                      .id,
+                                                              playerId:
+                                                                  scorer.id,
+                                                              goals: -1,
+                                                            );
+                                                          },
+                                                        ),
+                                                        Text(
+                                                          '${goals[index]}',
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 18,
+                                                              ),
+                                                        ),
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons.add,
+                                                          ),
+                                                          onPressed: () async {
+                                                            // addPlayerGoal(
+                                                            //   tournamentId: widget
+                                                            //       .tournament
+                                                            //       .id,
+                                                            //   goals: -1,
+
+                                                            //   playerId: scorer.id,
+                                                            //   playerName:
+                                                            //       scorer.name,
+                                                            // );
+                                                            setState(() {
+                                                              goals[index]++;
+                                                            });
+                                                            await addPlayerGoal(
+                                                              tournamentId:
+                                                                  widget
+                                                                      .tournament
+                                                                      .id,
+                                                              playerId:
+                                                                  scorer.id,
+                                                              goals: 1,
+                                                            );
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+
                                         SizedBox(height: 16),
                                         Row(
                                           children: [

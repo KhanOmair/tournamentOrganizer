@@ -22,6 +22,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
   String? _selectedType;
   List<String> _selectedPlayerIds = [];
+  String? sport;
 
   List<Team> teams = [];
   List<Group> groups = [];
@@ -362,6 +363,10 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         teams: teams,
         type: _selectedType!,
       );
+      List topscorer = [];
+      if (sport == 'fifa') {
+        topscorer = await generateTopScorers(_selectedPlayerIds);
+      }
 
       // Save tournament (with rounds)
       await FirebaseFirestore.instance
@@ -376,6 +381,8 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             'createdAt': FieldValue.serverTimestamp(),
             'teams': teams.map((team) => team.toMap()).toList(),
             'groups': groups.map((group) => group.toMap()).toList(),
+            'sport': sport,
+            'topScorers': topscorer,
           })
           .then((onValue) async {
             // Update tournamentsPlayed for each player
@@ -953,6 +960,26 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             ),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
+              value: sport,
+              items: const [
+                DropdownMenuItem(value: 'fifa', child: Text('FIFA')),
+                DropdownMenuItem(value: 'tekken', child: Text('Tekken')),
+                DropdownMenuItem(value: 'carrom', child: Text('Carrom')),
+                DropdownMenuItem(
+                  value: 'pickleball',
+                  child: Text('Pickle Ball'),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  sport = value;
+                });
+              },
+              decoration: const InputDecoration(labelText: 'Sport'),
+              validator: (value) => value == null ? 'Select a Sport' : null,
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
               value: _selectedType,
               items: const [
                 DropdownMenuItem(
@@ -963,14 +990,6 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   value: 'Group Format',
                   child: Text('Group Format'),
                 ),
-                // DropdownMenuItem(
-                //   value: 'Single Elimination',
-                //   child: Text('Single Elimination'),
-                // ),
-                // DropdownMenuItem(
-                //   value: 'Double Elimination',
-                //   child: Text('Double Elimination'),
-                // ),
               ],
               onChanged: (value) {
                 setState(() {
@@ -981,6 +1000,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               validator: (value) =>
                   value == null ? 'Select a tournament type' : null,
             ),
+
             const SizedBox(height: 10),
             // add a toggle for doubles
             Row(
@@ -1247,5 +1267,16 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     }
 
     return name;
+  }
+
+  Future<List<Map<String, dynamic>>> generateTopScorers(
+    List<String> selectedPlayerIds,
+  ) async {
+    return Future.wait(
+      selectedPlayerIds.map((id) async {
+        final name = await getPlayerName(id);
+        return {'playerId': id, 'goals': 0, 'name': name};
+      }),
+    );
   }
 }

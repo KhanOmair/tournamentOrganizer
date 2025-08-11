@@ -34,6 +34,8 @@ class Tournament {
   final List<Team> teams;
   final List<String> participants;
   final List<Group> groups;
+  final String sport;
+  final List<TopScorer> topScorers;
 
   Tournament({
     required this.participants,
@@ -46,6 +48,8 @@ class Tournament {
     required this.startDate,
     required this.playerIds,
     required this.rounds,
+    required this.sport,
+    required this.topScorers,
   });
 
   factory Tournament.fromFirestore(Map<String, dynamic> data, String docId) {
@@ -75,6 +79,13 @@ class Tournament {
             ) ??
             [],
       ),
+      sport: data['sport'] ?? '',
+      topScorers: List<TopScorer>.from(
+        (data['topScorers'] as List<dynamic>?)?.map(
+              (teamData) => TopScorer.fromMap(teamData),
+            ) ??
+            [],
+      ),
     );
   }
 
@@ -89,6 +100,8 @@ class Tournament {
       'teams': teams.map((team) => team.toMap()).toList(),
       'participants': participants,
       'groups': groups.map((group) => group.toMap()).toList(),
+      'sport': sport,
+      'topscorers': topScorers.map((topscorer) => topscorer.toMap()).toList(),
     };
   }
 }
@@ -119,5 +132,25 @@ class Group {
       'name': name,
       'teams': teams.map((team) => team.toMap()).toList(),
     };
+  }
+}
+
+class TopScorer {
+  final String id;
+  final String name;
+  final int goals;
+
+  TopScorer({required this.id, required this.name, required this.goals});
+
+  factory TopScorer.fromMap(Map<String, dynamic> data) {
+    return TopScorer(
+      id: data['playerId'] ?? '',
+      name: data['name'] ?? '',
+      goals: data['goals'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {'playerId': id, 'name': name, 'goals': goals};
   }
 }
