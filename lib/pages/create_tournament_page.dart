@@ -159,91 +159,102 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       // make sure to make this in the future builder
       builder: (_) => StatefulBuilder(
         builder: (context, setState) {
-          return Container(
-            height: 700,
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                const Text(
-                  'Random Teams',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                if (tteams.length.isOdd)
-                  Text(
-                    'Choose a team to be the finalist(optional)',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                const SizedBox(height: 16.0),
-                SizedBox(
-                  height: 300,
-                  child: ListView.builder(
-                    itemCount: tteams.length,
-                    itemBuilder: (context, index) {
-                      final team = tteams[index];
-                      return ListTile(
-                        leading: CircleAvatar(child: Text('${index + 1}')),
-                        title: Row(
-                          children: [
-                            Text(team.teamName),
-                            Spacer(),
-
-                            if (tteams.length.isOdd)
-                              Checkbox(
-                                value: team.teamId == finalistTeam.teamId,
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value == true) {
-                                      finalistTeam = team;
-                                      finalistTeam = Team(
-                                        teamId: team.teamId,
-                                        teamName: team.teamName,
-                                        playerIdsTeam: team.playerIdsTeam,
-                                        played: team.played,
-                                        wins: 20,
-                                        draws: team.draws,
-                                        losses: team.losses,
-                                        goalsFor: team.goalsFor,
-                                        goalsAgainst: team.goalsAgainst,
-                                      );
-                                    } else {
-                                      finalistTeam = Team(
-                                        teamId: "bye_1",
-                                        teamName: "BYE",
-                                        playerIdsTeam: ["BYE"],
-                                        played: 0,
-                                        wins: 0,
-                                        draws: 0,
-                                        losses: 0,
-                                        goalsFor: 0,
-                                        goalsAgainst: 0,
-                                      );
-                                    }
-                                  });
-                                },
-                              ),
-                          ],
+          return DraggableScrollableSheet(
+            expand: false,
+            builder: (context, scrollController) {
+              return Container(
+                height: 700,
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    const Text(
+                      'Random Teams',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (tteams.length.isOdd)
+                      Text(
+                        'Choose a team to be the finalist(optional)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    const SizedBox(height: 16.0),
+                    SizedBox(
+                      height: 300,
+                      child: ListView.builder(
+                        itemCount: tteams.length,
+                        itemBuilder: (context, index) {
+                          final team = tteams[index];
+                          return ListTile(
+                            leading: CircleAvatar(child: Text('${index + 1}')),
+                            title: Row(
+                              children: [
+                                Text(team.teamName),
+                                Spacer(),
+
+                                if (tteams.length.isOdd)
+                                  Checkbox(
+                                    value: team.teamId == finalistTeam.teamId,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        if (value == true) {
+                                          finalistTeam = team;
+                                          finalistTeam = Team(
+                                            teamId: team.teamId,
+                                            teamName: team.teamName,
+                                            playerIdsTeam: team.playerIdsTeam,
+                                            played: team.played,
+                                            wins: 20,
+                                            draws: team.draws,
+                                            losses: team.losses,
+                                            goalsFor: team.goalsFor,
+                                            goalsAgainst: team.goalsAgainst,
+                                          );
+                                        } else {
+                                          finalistTeam = Team(
+                                            teamId: "bye_1",
+                                            teamName: "BYE",
+                                            playerIdsTeam: ["BYE"],
+                                            played: 0,
+                                            wins: 0,
+                                            draws: 0,
+                                            losses: 0,
+                                            goalsFor: 0,
+                                            goalsAgainst: 0,
+                                          );
+                                        }
+                                      });
+                                    },
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        // Regenerate Teams
+                        Navigator.pop(context); // Close the bottom sheet
+                      },
+                      child: const Text('Regenerate'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        teams = tteams; // Save the generated teams
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Done'),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () async {
-                    // Regenerate Teams
-                    Navigator.pop(context); // Close the bottom sheet
-                  },
-                  child: const Text('Regenerate'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    teams = tteams; // Save the generated teams
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Done'),
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
