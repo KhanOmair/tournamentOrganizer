@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
@@ -139,7 +140,7 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                       if (widget.isAdmin) {
                         int team1Score = match.scores.team1;
                         int team2Score = match.scores.team2;
-                         List goals = [0, 0, 0, 0];
+                        List goals = [0, 0, 0, 0];
                         showDialog(
                           context: context,
                           builder: (context) {
@@ -207,7 +208,7 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                             ),
                                           ],
                                         ),
-                                         if (widget.tournament.sport == 'fifa' &&
+                                        if (widget.tournament.sport == 'fifa' &&
                                             !match.playerIds.contains('BYE'))
                                           SizedBox(height: 16),
                                         if (widget.tournament.sport == 'fifa' &&
@@ -224,99 +225,137 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                             !match.playerIds.contains('BYE'))
                                           Padding(
                                             padding: const EdgeInsets.all(8.0),
-                                            child: ListView.builder(
-                                              shrinkWrap: true,
-                                              physics:
-                                                  const NeverScrollableScrollPhysics(),
-                                              itemCount: match.playerIds.length,
-                                              itemBuilder: (context, index) {
-                                                var scorer = widget
-                                                    .tournament
-                                                    .topScorers
-                                                    .firstWhere(
+                                            child: StreamBuilder(
+                                              stream: FirebaseFirestore.instance
+                                                  .collection('tournaments')
+                                                  .doc(widget.tournament.id)
+                                                  .snapshots()
+                                                  .map((snapshot) {
+                                                    if (!snapshot.exists)
+                                                      return [];
+
+                                                    final data = snapshot
+                                                        .data()!;
+                                                    return (data['topScorers']
+                                                                as List<
+                                                                  dynamic
+                                                                >? ??
+                                                            [])
+                                                        .map(
+                                                          (scorer) => {
+                                                            'playerId':
+                                                                scorer['playerId'] ??
+                                                                '',
+                                                            'goals':
+                                                                scorer['goals'] ??
+                                                                0,
+                                                            'name':
+                                                                scorer['name'] ??
+                                                                '',
+                                                          },
+                                                        )
+                                                        .toList();
+                                                  }),
+
+                                              builder: (context, asyncSnapshot) {
+                                                final mscorers =
+                                                    asyncSnapshot.data!;
+                                                return ListView.builder(
+                                                  shrinkWrap: true,
+                                                  physics:
+                                                      const NeverScrollableScrollPhysics(),
+                                                  itemCount:
+                                                      match.playerIds.length,
+                                                  itemBuilder: (context, index) {
+                                                    var scorer = mscorers.firstWhere(
                                                       (scorer) =>
-                                                          scorer.id ==
+                                                          scorer['playerId'] ==
                                                           match
                                                               .playerIds[index],
                                                       // orElse: () => null,
                                                     );
 
-                                                return Card(
-                                                  child: ListTile(
-                                                    title: Text(scorer.name),
-                                                    trailing: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons.remove,
-                                                          ),
-                                                          onPressed: () async {
-                                                            // addPlayerGoal(
-                                                            //   tournamentId: widget
-                                                            //       .tournament
-                                                            //       .id,
-                                                            //   goals: -1,
-
-                                                            //   playerId: scorer.id,
-                                                            //   playerName:
-                                                            //       scorer.name,
-                                                            // );
-                                                            setState(() {
-                                                              goals[index]--;
-                                                            });
-
-                                                            await addPlayerGoal(
-                                                              tournamentId:
-                                                                  widget
-                                                                      .tournament
-                                                                      .id,
-                                                              playerId:
-                                                                  scorer.id,
-                                                              goals: -1,
-                                                            );
-                                                          },
+                                                    return Card(
+                                                      child: ListTile(
+                                                        title: Text(
+                                                          scorer['name'],
                                                         ),
-                                                        Text(
-                                                          '${goals[index]}',
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 18,
+                                                        trailing: Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                Icons.remove,
                                                               ),
-                                                        ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons.add,
-                                                          ),
-                                                          onPressed: () async {
-                                                            // addPlayerGoal(
-                                                            //   tournamentId: widget
-                                                            //       .tournament
-                                                            //       .id,
-                                                            //   goals: -1,
+                                                              onPressed: () async {
+                                                                // addPlayerGoal(
+                                                                //   tournamentId: widget
+                                                                //       .tournament
+                                                                //       .id,
+                                                                //   goals: -1,
 
-                                                            //   playerId: scorer.id,
-                                                            //   playerName:
-                                                            //       scorer.name,
-                                                            // );
-                                                            setState(() {
-                                                              goals[index]++;
-                                                            });
-                                                            await addPlayerGoal(
-                                                              tournamentId:
-                                                                  widget
-                                                                      .tournament
-                                                                      .id,
-                                                              playerId:
-                                                                  scorer.id,
-                                                              goals: 1,
-                                                            );
-                                                          },
+                                                                //   playerId: scorer.id,
+                                                                //   playerName:
+                                                                //       scorer.name,
+                                                                // );
+                                                                setState(() {
+                                                                  goals[index]--;
+                                                                });
+
+                                                                await addPlayerGoal(
+                                                                  tournamentId:
+                                                                      widget
+                                                                          .tournament
+                                                                          .id,
+                                                                  playerId:
+                                                                      scorer['playerId'],
+                                                                  goals: -1,
+                                                                );
+                                                              },
+                                                            ),
+                                                            Text(
+                                                              '${scorer['goals']}',
+                                                              style:
+                                                                  const TextStyle(
+                                                                    fontSize:
+                                                                        18,
+                                                                  ),
+                                                            ),
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                Icons.add,
+                                                              ),
+                                                              onPressed: () async {
+                                                                // addPlayerGoal(
+                                                                //   tournamentId: widget
+                                                                //       .tournament
+                                                                //       .id,
+                                                                //   goals: -1,
+
+                                                                //   playerId: scorer.id,
+                                                                //   playerName:
+                                                                //       scorer.name,
+                                                                // );
+                                                                setState(() {
+                                                                  goals[index]++;
+                                                                });
+                                                                await addPlayerGoal(
+                                                                  tournamentId:
+                                                                      widget
+                                                                          .tournament
+                                                                          .id,
+                                                                  playerId:
+                                                                      scorer['playerId'],
+                                                                  goals: 1,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ],
                                                         ),
-                                                      ],
-                                                    ),
-                                                  ),
+                                                      ),
+                                                    );
+                                                  },
                                                 );
                                               },
                                             ),
@@ -484,7 +523,7 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                               },
                             );
                           },
-                        );
+                        ); // showDialog
                       }
                     },
                   ),

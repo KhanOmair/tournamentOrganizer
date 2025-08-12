@@ -88,9 +88,11 @@ class StandingsTable extends StatelessWidget {
         DataColumn(label: Text('L')),
         DataColumn(label: Text('Pts')),
         DataColumn(label: Text('GD')),
+        DataColumn(label: Text('GF')),
+        DataColumn(label: Text('GA')),
       ],
       rows: List.generate(sortedTeams.length, (index) {
-        final team = sortedTeams[index];
+        final Team team = sortedTeams[index];
         return DataRow(
           cells: [
             DataCell(Text('${index + 1}')), // Rank
@@ -126,6 +128,8 @@ class StandingsTable extends StatelessWidget {
             DataCell(Text('${team.losses}')),
             DataCell(Text('${team.points}')),
             DataCell(Text('${team.goalDifference}')),
+            DataCell(Text('${team.goalsFor}')),
+            DataCell(Text('${team.goalsAgainst}')),
           ],
         );
       }),
