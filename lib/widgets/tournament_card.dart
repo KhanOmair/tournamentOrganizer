@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/pages/tournament_detail_page.dart';
 import 'package:tourney_app/utils/tournament_crud.dart';
@@ -8,6 +9,26 @@ import 'package:tourney_app/utils/tournament_crud.dart';
 class TournamentCard extends StatelessWidget {
   final Tournament tournament;
   final bool isAdmin;
+
+  List<Team> _sortTeams(List<Team> unsortedTeams) {
+    final sorted = List<Team>.from(unsortedTeams);
+    sorted.sort((a, b) {
+      // Sort by Points
+      if (b.points != a.points) return b.points.compareTo(a.points);
+
+      // If Points equal, sort by Goal Difference
+      if (b.goalDifference != a.goalDifference) {
+        return b.goalDifference.compareTo(a.goalDifference);
+      }
+
+      // If GD equal, sort by Wins
+      if (b.wins != a.wins) return b.wins.compareTo(a.wins);
+
+      // If all equal, sort alphabetically
+      return a.teamName.compareTo(b.teamName);
+    });
+    return sorted;
+  }
 
   const TournamentCard({
     super.key,
@@ -112,30 +133,69 @@ class TournamentCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.schedule, size: 20, color: Colors.grey),
-                    const SizedBox(width: 6),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$matchesLeft',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                tournament.status == 'completed'
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.emoji_events,
+                            size: 20,
+                            color: Colors.grey,
                           ),
-                        ),
-                        const Text(
-                          'matches left',
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                          const SizedBox(width: 6),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _sortTeams(tournament.teams)[0].teamName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Text(
+                                'Winners',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.schedule,
+                            size: 20,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 6),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$matchesLeft',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Text(
+                                'matches left',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
 
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

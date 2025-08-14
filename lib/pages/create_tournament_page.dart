@@ -19,12 +19,13 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
+  List<TextEditingController> teamNameControllers = [];
 
   String? _selectedType;
   List<String> _selectedPlayerIds = [];
   String? sport;
 
-  List<Team> teams = [];
+  List<Team> mteams = [];
   List<Group> groups = [];
   List topscorer = [];
 
@@ -154,6 +155,10 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
   void _generateAndShowTeams(BuildContext context) async {
     List<Team> tteams = await _generateTeams();
 
+    setState(() {
+      mteams = tteams;
+    });
+
     showDialog(
       context: context,
       // make sure to make this in the future builder
@@ -259,7 +264,9 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   ),
                   TextButton(
                     onPressed: () {
-                      teams = tteams; // Save the generated teams
+                      setState(() {
+                        mteams = tteams;
+                      }); // Save the generated teams
                       Navigator.pop(context);
                     },
                     child: const Text('Done'),
@@ -339,8 +346,8 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         final ssimulatedGoalsAgainst =
             ssimulatedMatches * avgGoalsAgainstPerMatch;
 
-        teams.removeWhere((team) => team.teamId == finalistTeam.teamId);
-        teams.add(
+        mteams.removeWhere((team) => team.teamId == finalistTeam.teamId);
+        mteams.add(
           Team(
             teamId: finalistTeam.teamId,
             teamName: finalistTeam.teamName,
@@ -354,7 +361,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
           ),
         );
       } else if (finalistTeam.teamId != "not_selected") {
-        final totalTeamsInGroup = teams.length;
+        final totalTeamsInGroup = mteams.length;
 
         final simulatedMatches = totalTeamsInGroup - 1;
         final avgGoalsForPerMatch = 1;
@@ -367,8 +374,8 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         final simulatedGoalsFor = simulatedMatches * avgGoalsForPerMatch;
         final simulatedGoalsAgainst =
             simulatedMatches * avgGoalsAgainstPerMatch;
-        teams.removeWhere((team) => team.teamId == finalistTeam.teamId);
-        teams.add(
+        mteams.removeWhere((team) => team.teamId == finalistTeam.teamId);
+        mteams.add(
           Team(
             teamId: finalistTeam.teamId,
             teamName: finalistTeam.teamName,
@@ -384,7 +391,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       }
       // Generate rounds + matches
       final rounds = await _generateRoundsAndMatches(
-        teams: teams,
+        teams: mteams,
         type: _selectedType!,
       );
 
@@ -403,7 +410,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             'playerIds': _selectedPlayerIds,
             'rounds': rounds,
             'createdAt': FieldValue.serverTimestamp(),
-            'teams': teams.map((team) => team.toMap()).toList(),
+            'teams': mteams.map((team) => team.toMap()).toList(),
             'groups': groups.map((group) => group.toMap()).toList(),
             'sport': sport,
             'topScorers': topscorer,
@@ -413,7 +420,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
             // create a list of playerIds from teams
             List<String> playerIds = [];
-            for (var team in teams) {
+            for (var team in mteams) {
               playerIds.addAll(team.playerIdsTeam);
             }
             await updateTournamentsPlayedForPlayers(playerIds);
@@ -432,7 +439,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       // Go back
     } catch (e) {
       print(e);
-      print(teams.map((team) => team.toMap()).toList());
+      print(mteams.map((team) => team.toMap()).toList());
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -939,6 +946,13 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
   @override
   Widget build(BuildContext context) {
+    while (teamNameControllers.length < mteams.length) {
+      teamNameControllers.add(
+        TextEditingController(
+          text: mteams[teamNameControllers.length].teamName,
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Create Tournament')),
       body: arePlayersSelected == true
@@ -1033,6 +1047,15 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   value == null ? 'Select a tournament type' : null,
             ),
             const SizedBox(height: 10),
+            TextFormField(
+              controller: _dateController,
+              decoration: const InputDecoration(
+                labelText: 'Start Date (YYYY-MM-DD)',
+              ),
+              validator: (value) =>
+                  value == null || value.trim().isEmpty ? 'Enter a date' : null,
+            ),
+            const SizedBox(height: 10),
             // add a toggle for doubles
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1091,18 +1114,75 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               ],
             ),
             const SizedBox(height: 10),
-            TextFormField(
-              controller: _dateController,
-              decoration: const InputDecoration(
-                labelText: 'Start Date (YYYY-MM-DD)',
-              ),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Enter a date' : null,
+            ExpansionTile(
+              key: ValueKey(mteams.length),
+              title: Text('Change Team Names'),
+              initiallyExpanded: false,
+
+              children: mteams.isEmpty
+                  ? [Text('Generate Teams First')]
+                  : mteams.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      Team team = entry.value;
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: teamNameControllers[index],
+                                decoration: InputDecoration(
+                                  labelText: team.teamName,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  // Replace the team object in the list with a new one
+                                  setState(() {
+                                    // name = value;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.check,
+                                color: Colors.green,
+                              ),
+                              onPressed: () {
+                                // Trigger setState to rebuild UI or save to Firebase
+                                setState(() {
+                                  mteams[index] = Team(
+                                    teamId: team.teamId,
+                                    teamName: teamNameControllers[index].text
+                                        .trim(), // updated name
+                                    playerIdsTeam: team.playerIdsTeam,
+                                    played: team.played,
+                                    wins: team.wins,
+                                    draws: team.draws,
+                                    losses: team.losses,
+                                    goalsFor: team.goalsFor,
+                                    goalsAgainst: team.goalsAgainst,
+                                  );
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
             ),
+
             if (choosingFinalist == true)
               // Display the custom teams created is ListView
               Column(
-                children: teams.map((team) {
+                children: mteams.map((team) {
                   return ListTile(
                     title: Row(
                       children: [
@@ -1158,14 +1238,15 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 onPressed: () async {
                   // Navigate to Custom Teams Page
 
-                  teams = await Navigator.push(
+                  mteams = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
                           CreateTeamsPage(selectedPlayers: _selectedPlayerIds),
                     ),
                   );
-                  if (teams.isNotEmpty) {
+                  setState(() {});
+                  if (mteams.isNotEmpty) {
                     teamsCreated = true;
                   }
                 },
@@ -1197,7 +1278,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   groups = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => GroupingWidget(teams: teams),
+                      builder: (context) => GroupingWidget(teams: mteams),
                     ),
                   );
                 },
