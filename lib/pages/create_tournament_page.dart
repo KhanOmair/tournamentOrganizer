@@ -6,6 +6,7 @@ import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/pages/custom_teams_page.dart';
 import 'package:tourney_app/utils/tournament_crud.dart';
+import 'package:tourney_app/utils/tourney_functions.dart';
 import 'package:tourney_app/widgets/grouping_widget.dart';
 
 class CreateTournamentPage extends StatefulWidget {
@@ -555,6 +556,11 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       }
 
       return r;
+    } else if (sport == 'tekken') {
+      List<Map<String, dynamic>> r = [];
+      // r = generateBalancedCrossGroupRounds(groups);
+      r = generateGroupVsGroupRounds(groups);
+      return r;
     } else // if not singles , then doubles -------------
     {
       List<Map<String, dynamic>> r = [];
@@ -1055,64 +1061,23 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Enter a date' : null,
             ),
-            const SizedBox(height: 10),
-            // add a toggle for doubles
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Doubles'),
-                Switch(
-                  value: isDoubles,
-                  onChanged: (value) {
-                    setState(() {
-                      isDoubles = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Custom Teams'),
-                Switch(
-                  value: isCustomTeams,
-                  onChanged: (value) {
-                    setState(() {
-                      isCustomTeams = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Choose Finalist'),
-                Switch(
-                  value: choosingFinalist,
-                  onChanged: (value) {
-                    setState(() {
-                      choosingFinalist = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Make Groups'),
-                Switch(
-                  value: makeGroups,
-                  onChanged: (value) {
-                    setState(() {
-                      makeGroups = value;
-                    });
-                  },
-                ),
-              ],
-            ),
+
+            showOptions(sport),
+
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //   children: [
+            //     const Text('Choose Finalist'),
+            //     Switch(
+            //       value: choosingFinalist,
+            //       onChanged: (value) {
+            //         setState(() {
+            //           choosingFinalist = value;
+            //         });
+            //       },
+            //     ),
+            //   ],
+            // ),
             const SizedBox(height: 10),
             ExpansionTile(
               key: ValueKey(mteams.length),
@@ -1311,6 +1276,190 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     );
   }
 
+  showOptions(sport) {
+    switch (sport) {
+      case 'fifa':
+        return Column(
+          children: [
+            const SizedBox(height: 10),
+            // add a toggle for doubles
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Doubles'),
+                Switch(
+                  value: isDoubles,
+                  onChanged: (value) {
+                    setState(() {
+                      isDoubles = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Custom Teams'),
+                Switch(
+                  value: isCustomTeams,
+                  onChanged: (value) {
+                    setState(() {
+                      isCustomTeams = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Make Groups'),
+                Switch(
+                  value: makeGroups,
+                  onChanged: (value) {
+                    setState(() {
+                      makeGroups = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+
+      case 'tekken':
+        isDoubles = false;
+        return Column(
+          children: [
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Make Groups'),
+                Switch(
+                  value: makeGroups,
+                  onChanged: (value) {
+                    setState(() {
+                      makeGroups = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+
+      case 'carrom':
+        return Column(
+          children: [
+            const SizedBox(height: 10),
+            // add a toggle for doubles
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Doubles'),
+                Switch(
+                  value: isDoubles,
+                  onChanged: (value) {
+                    setState(() {
+                      isDoubles = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Custom Teams'),
+                Switch(
+                  value: isCustomTeams,
+                  onChanged: (value) {
+                    setState(() {
+                      isCustomTeams = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Make Groups'),
+                Switch(
+                  value: makeGroups,
+                  onChanged: (value) {
+                    setState(() {
+                      makeGroups = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      case 'pickleball':
+        return Column(
+          children: [
+            const SizedBox(height: 10),
+            // add a toggle for doubles
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Doubles'),
+                Switch(
+                  value: isDoubles,
+                  onChanged: (value) {
+                    setState(() {
+                      isDoubles = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Custom Teams'),
+                Switch(
+                  value: isCustomTeams,
+                  onChanged: (value) {
+                    setState(() {
+                      isCustomTeams = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Make Groups'),
+                Switch(
+                  value: makeGroups,
+                  onChanged: (value) {
+                    setState(() {
+                      makeGroups = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+
+      default:
+        return Text('Select a sport');
+    }
+  }
+
   Widget _buildPlayerList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('players').snapshots(),
@@ -1347,14 +1496,6 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         );
       },
     );
-  }
-
-  // function to get all players from the firestore
-  Future<List<String>> _getAllPlayers() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('players')
-        .get();
-    return snapshot.docs.map((doc) => doc.id).toList();
   }
 
   Future<String> getPlayerName(String playerId) async {
