@@ -207,14 +207,14 @@ class TournamentCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${tournament.playerIds.length}',
+                          '${tournament.teams.length}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const Text(
-                          'players',
+                          'teams',
                           style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ],
