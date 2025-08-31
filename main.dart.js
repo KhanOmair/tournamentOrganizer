@@ -29673,16 +29673,16 @@ _.f=f
 _.r=g
 _.w=h
 _.x=i},
-TZ(a,b){var s,r,q,p,o,n,m,l,k=null,j=t.kc,i=j.a(a.h(0,"groups"))
-i=i==null?k:J.dA(i,new A.ap6(),t.z)
-if(i==null)i=[]
-i=A.bU(i,!0,t.Bz)
+TZ(a,b){var s,r,q,p,o,n,m,l=null,k=t.kc,j=k.a(a.h(0,"groups"))
+j=j==null?l:J.dA(j,new A.ap6(),t.z)
+if(j==null)j=[]
+j=A.bU(j,!0,t.Bz)
 s=a.h(0,"participants")
 if(s==null)s=[]
 r=t.N
 A.bU(s,!0,r)
-s=j.a(a.h(0,"teams"))
-s=s==null?k:J.dA(s,new A.ap7(),t.z)
+s=k.a(a.h(0,"teams"))
+s=s==null?l:J.dA(s,new A.ap7(),t.z)
 if(s==null)s=[]
 s=A.bU(s,!0,t.J1)
 q=a.h(0,"name")
@@ -29693,17 +29693,17 @@ o=a.h(0,"status")
 if(o==null)o="upcoming"
 n=a.h(0,"startDate").Mz()
 m=a.h(0,"playerIds")
-r=A.bU(m==null?[]:m,!0,r)
-m=j.a(a.h(0,"rounds"))
-m=m==null?k:J.dA(m,new A.ap8(),t.z)
-if(m==null)m=[]
-m=A.bU(m,!0,t.uv)
-l=a.h(0,"sport")
-if(l==null)l=""
-j=j.a(a.h(0,"topScorers"))
-j=j==null?k:J.dA(j,new A.ap9(),t.z)
-if(j==null)j=[]
-return new A.fB(b,q,p,o,n,r,m,s,i,l,A.bU(j,!0,t.OB))},
+A.bU(m==null?[]:m,!0,r)
+r=k.a(a.h(0,"rounds"))
+r=r==null?l:J.dA(r,new A.ap8(),t.z)
+if(r==null)r=[]
+r=A.bU(r,!0,t.uv)
+m=a.h(0,"sport")
+if(m==null)m=""
+k=k.a(a.h(0,"topScorers"))
+k=k==null?l:J.dA(k,new A.ap9(),t.z)
+if(k==null)k=[]
+return new A.fB(b,q,p,o,n,r,s,j,m,A.bU(k,!0,t.OB))},
 aZh(a){var s,r,q=a.h(0,"id")
 if(q==null)q=""
 s=a.h(0,"name")
@@ -29712,18 +29712,17 @@ r=t.kc.a(a.h(0,"teams"))
 r=r==null?null:J.dA(r,new A.abl(),t.z)
 if(r==null)r=[]
 return new A.fM(q,s,A.bU(r,!0,t.J1))},
-fB:function fB(a,b,c,d,e,f,g,h,i,j,k){var _=this
+fB:function fB(a,b,c,d,e,f,g,h,i,j){var _=this
 _.a=a
 _.b=b
 _.c=c
 _.d=d
 _.e=e
-_.f=f
-_.r=g
-_.w=h
-_.y=i
-_.z=j
-_.Q=k},
+_.r=f
+_.w=g
+_.y=h
+_.z=i
+_.Q=j},
 ap6:function ap6(){},
 ap7:function ap7(){},
 ap8:function ap8(){},
@@ -102389,7 +102388,7 @@ break
 case 1:return A.B(q,r)}})
 return A.C($async$EC,r)}}
 A.asS.prototype={
-$1(a){return A.a3z(A.b([A.pk(B.ZU,new A.asR(this.a),null)],t.p),B.a_4,B.a_F)},
+$1(a){return A.a3z(A.b([A.pk(B.ZU,new A.asR(this.a),null)],t.p),B.a_5,B.a_F)},
 $S:226}
 A.asR.prototype={
 $0(){A.dw(this.a,!1).mF(null)
@@ -102733,7 +102732,7 @@ return}r=this.c
 r.toString
 A.dw(r,!1).mF(s)},
 K(a){var s=this,r=null,q=s.f,p=A.V(q).i("aU<1>"),o=A.S(new A.aU(q,new A.asl(s),p),p.i("x.E"))
-return A.p1(A.a3I(r,B.b5,B.a_E),new A.aT(B.ct,A.cp(A.b([B.a_m,B.an,A.nY(A.kV(new A.asm(s,o),o.length,r,r,!1),1),B.an,A.jF(!1,B.a_y,r,r,r,r,r,r,s.ga8D(),r,A.BL(r,r,B.b5,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r)),B.aY,B.oq,B.ZZ,B.an,A.cF(A.kV(new A.asn(s),s.e.length,r,r,!1),150,r),B.aY,A.aYv(B.JI,B.mf,s.gacK(),A.BL(r,r,B.b5,r,r,r,r,r,r,r,r,r,B.IK,r,r,r,r,r,r,r))],t.p),B.z,B.D,B.x),r),r,r)}}
+return A.p1(A.a3I(r,B.b5,B.a_E),new A.aT(B.ct,A.cp(A.b([B.a_m,B.an,A.nY(A.kV(new A.asm(s,o),o.length,r,r,!1),1),B.an,A.jF(!1,B.a_y,r,r,r,r,r,r,s.ga8D(),r,A.BL(r,r,B.b5,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r)),B.aY,B.oq,B.a__,B.an,A.cF(A.kV(new A.asn(s),s.e.length,r,r,!1),150,r),B.aY,A.aYv(B.JI,B.mf,s.gacK(),A.BL(r,r,B.b5,r,r,r,r,r,r,r,r,r,B.IK,r,r,r,r,r,r,r))],t.p),B.z,B.D,B.x),r),r,r)}}
 A.aso.prototype={
 $1(a){var s=a.yV()
 s.toString
@@ -102780,7 +102779,7 @@ $0(){return B.b.jP(this.a.e,this.b)},
 $S:0}
 A.mf.prototype={
 ah(){var s="team1",r="teamName",q="team2",p="http://example.com/stream1",o=t.Cw,n=A.b([],o),m=A.b([],t.Xs),l=A.b([],t.fy),k=t.s,j=A.b([new A.bd(s,r,A.b(["playerIdsTeam","dfvjvbvf"],k),0,0,0,0,0,0),new A.bd(q,r,A.b(["playerIdsTeam","dfvjvbvf"],k),0,0,0,0,0,0),new A.bd(q,r,A.b(["playerIdsTeam","dfvjvbvf"],k),0,0,0,0,0,0)],t.wI)
-return new A.Xl(n,A.b([new A.fB("3435y4","name","roundRobin","ongoing",A.aGt(2025,7,9,0,0,0,0),A.b(["dfrg","dfrg","dfdffgdg"],k),A.b([new A.p_("round1","Round 1",A.b([new A.iQ("match1","singles","completed",A.b(["player1","player2"],k),new A.wH(3,1),s,new A.bd(s,s,A.b(["player1","player2"],k),0,0,0,0,0,0),new A.bd(q,q,A.b(["player3","player4"],k),0,0,0,0,0,0),p),new A.iQ("match2","doubles","upcoming",A.b(["player3","player4"],k),new A.wH(2,2),"",new A.bd(s,q,A.b(["player3","player4"],k),0,0,0,0,0,0),new A.bd(q,s,A.b(["player1","player2"],k),0,0,0,0,0,0),p)],t.Aj))],t.yD),j,l,"fifa",m)],o))}}
+return new A.Xl(n,A.b([new A.fB("3435y4","name","roundRobin","ongoing",A.aGt(2025,7,9,0,0,0,0),A.b([new A.p_("round1","Round 1",A.b([new A.iQ("match1","singles","completed",A.b(["player1","player2"],k),new A.wH(3,1),s,new A.bd(s,s,A.b(["player1","player2"],k),0,0,0,0,0,0),new A.bd(q,q,A.b(["player3","player4"],k),0,0,0,0,0,0),p),new A.iQ("match2","doubles","upcoming",A.b(["player3","player4"],k),new A.wH(2,2),"",new A.bd(s,q,A.b(["player3","player4"],k),0,0,0,0,0,0),new A.bd(q,s,A.b(["player1","player2"],k),0,0,0,0,0,0),p)],t.Aj))],t.yD),j,l,"fifa",m)],o))}}
 A.Xl.prototype={
 ar(){this.aK()
 this.wY()},
@@ -103359,7 +103358,7 @@ r=A.S(s,s.$ti.i("x.E"))
 q.a1(new A.avU(q,p,r))},
 K(a){var s=this,r=null,q=A.av("Create Group",r,r,r,r,A.O(a).ok.r,r,r),p=A.pm(!0,B.bt,!1,r,!0,B.C,r,A.uK(),s.d,r,r,r,r,r,2,B.Kb,B.P,!0,r,!0,r,!1,r,B.bC,r,r,r,r,r,r,r,1,r,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.c5,r,r,B.bo,B.bd,r,r,r,r,r,r,r,!0,B.a9,r,B.cC,r,r,r,r),o=A.av("Select Teams",r,r,r,r,A.O(a).ok.w,r,r),n=J.dA(s.a.c,new A.avY(s),t.LD)
 n=A.S(n,n.$ti.i("a5.E"))
-q=A.b([q,B.d1,p,B.d1,o,B.iC,A.aP5(n,10),B.d1,A.cY(A.jF(!1,B.ZY,r,r,r,r,r,r,s.gaaG(),r,r),r,r),B.HU,A.av("Created Groups",r,r,r,r,A.O(a).ok.r,r,r),B.an],t.p)
+q=A.b([q,B.d1,p,B.d1,o,B.iC,A.aP5(n,10),B.d1,A.cY(A.jF(!1,B.ZZ,r,r,r,r,r,r,s.gaaG(),r,r),r,r),B.HU,A.av("Created Groups",r,r,r,r,A.O(a).ok.r,r,r),B.an],t.p)
 p=s.f
 o=A.V(p).i("U<1,iC>")
 p=A.S(new A.U(p,new A.avZ(),o),o.i("a5.E"))
@@ -103481,10 +103480,10 @@ return new A.lV(A.b([p,o,n,l,j,i,k,A.lU(A.av(""+(m-s),r,r,r,r,r,r,r)),A.lU(A.av(
 $S:674}
 A.TY.prototype={
 K(a){var s,r=null,q=this.c
-if(q.length===0)return B.a_2
+if(q.length===0)return B.a_3
 q=A.S(q,t.OB)
 B.b.fP(q,new A.aoY())
-s=A.b([B.ZX,B.cB],t.p)
+s=A.b([B.ZY,B.cB],t.p)
 B.b.V(s,new A.U(q,new A.aoZ(),A.V(q).i("U<1,f>")))
 return A.qo(new A.aT(B.ct,A.cp(s,B.z,B.D,B.x),r),r,r,B.Iz,r)}}
 A.aoY.prototype={
@@ -103505,7 +103504,7 @@ gavd(){var s,r,q,p,o,n,m
 for(s=this.c.r,r=s.length,q=0,p=0;p<r;++p)for(o=s[p].d,n=o.length,m=0;m<n;++m)if(o[m].c!=="completed")++q
 return q},
 K(a){var s,r,q,p=this,o=null,n=A.iA(12),m=p.c,l=t.p,k=A.ck(A.b([A.AQ(o,o,o),B.Bk,A.nY(A.av(m.b,o,o,o,o,B.Wt,o,o),1)],l),B.z,B.D,B.x,o),j=m.d,i=j==="completed"?A.ck(A.b([B.JF,B.iB,A.cp(A.b([A.av(p.aml(m.w)[0].b,o,o,o,o,B.em,o,o),B.ZM],l),B.aA,B.D,B.x)],l),B.aA,B.D,B.x,o):A.ck(A.b([B.JM,B.iB,A.cp(A.b([A.av(""+p.gavd(),o,o,o,o,B.em,o,o),B.a_B],l),B.aA,B.D,B.x)],l),B.aA,B.D,B.x,o)
-i=A.ck(A.b([i,A.ck(A.b([B.p8,B.iB,A.cp(A.b([A.av(""+m.f.length,o,o,o,o,B.em,o,o),B.a_6],l),B.aA,B.D,B.x)],l),B.aA,B.D,B.x,o),A.ck(A.b([B.p8,B.iB,A.cp(A.b([A.av(m.c,o,o,o,o,B.em,o,o),B.a_1],l),B.aA,B.D,B.x)],l),B.aA,B.D,B.x,o)],l),B.z,B.cX,B.x,o)
+i=A.ck(A.b([i,A.ck(A.b([B.p8,B.iB,A.cp(A.b([A.av(""+m.w.length,o,o,o,o,B.em,o,o),B.ZW],l),B.aA,B.D,B.x)],l),B.aA,B.D,B.x,o),A.ck(A.b([B.p8,B.iB,A.cp(A.b([A.av(m.c,o,o,o,o,B.em,o,o),B.a_2],l),B.aA,B.D,B.x)],l),B.aA,B.D,B.x,o)],l),B.z,B.cX,B.x,o)
 s=A.b([],l)
 r=p.d
 if(r)s.push(new A.e2(B.fU,o,o,A.kM(o,o,B.JE,o,o,new A.ap3(p,a),o,o,o),o))
@@ -108155,16 +108154,16 @@ B.a_f=new A.b0("P",null,null,null,null,null,null,null,null,null)
 B.Hz=new A.hS(B.a_f)
 B.ZV=new A.b0("W",null,null,null,null,null,null,null,null,null)
 B.Hw=new A.hS(B.ZV)
-B.ZW=new A.b0("D",null,null,null,null,null,null,null,null,null)
-B.Hv=new A.hS(B.ZW)
+B.ZX=new A.b0("D",null,null,null,null,null,null,null,null,null)
+B.Hv=new A.hS(B.ZX)
 B.ZO=new A.b0("L",null,null,null,null,null,null,null,null,null)
 B.Hu=new A.hS(B.ZO)
 B.a_u=new A.b0("Pts",null,null,null,null,null,null,null,null,null)
 B.Hx=new A.hS(B.a_u)
 B.a_j=new A.b0("GD",null,null,null,null,null,null,null,null,null)
 B.Hy=new A.hS(B.a_j)
-B.a__=new A.b0("GF",null,null,null,null,null,null,null,null,null)
-B.Hr=new A.hS(B.a__)
+B.a_0=new A.b0("GF",null,null,null,null,null,null,null,null,null)
+B.Hr=new A.hS(B.a_0)
 B.a_a=new A.b0("GA",null,null,null,null,null,null,null,null,null)
 B.Ht=new A.hS(B.a_a)
 B.pz=A.b(s([B.Hs,B.HA,B.Hz,B.Hw,B.Hv,B.Hu,B.Hx,B.Hy,B.Hr,B.Ht]),A.ai("t<hS>"))
@@ -108221,8 +108220,8 @@ B.a_r=new A.b0("Tekken",null,null,null,null,null,null,null,null,null)
 B.I_=new A.dT("tekken",B.a_r,B.bE,null,t.b7)
 B.a_b=new A.b0("Carrom",null,null,null,null,null,null,null,null,null)
 B.HY=new A.dT("carrom",B.a_b,B.bE,null,t.b7)
-B.a_3=new A.b0("Pickle Ball",null,null,null,null,null,null,null,null,null)
-B.I1=new A.dT("pickleball",B.a_3,B.bE,null,t.b7)
+B.a_4=new A.b0("Pickle Ball",null,null,null,null,null,null,null,null,null)
+B.I1=new A.dT("pickleball",B.a_4,B.bE,null,t.b7)
 B.Md=A.b(s([B.I0,B.I_,B.HY,B.I1]),t.FG)
 B.Me=A.b(s([23,114,69,56,80,144]),t.t)
 B.Mf=A.b(s(["Q1","Q2","Q3","Q4"]),t.s)
@@ -109806,14 +109805,14 @@ B.a_A=new A.b0("Please generate teams first.",null,null,null,null,null,null,null
 B.Un=new A.hb(B.a_A,null,null,null,null,null,null,null,null,null,null,null,null,B.aO,null,null,null,B.C,null)
 B.a_d=new A.b0("Please complete all fields and select different teams.",null,null,null,null,null,null,null,null,null)
 B.Uo=new A.hb(B.a_d,null,null,null,null,null,null,null,null,null,null,null,null,B.aO,null,null,null,B.C,null)
-B.a_5=new A.b0("Match created successfully!",null,null,null,null,null,null,null,null,null)
-B.Up=new A.hb(B.a_5,null,null,null,null,null,null,null,null,null,null,null,null,B.aO,null,null,null,B.C,null)
+B.a_6=new A.b0("Match created successfully!",null,null,null,null,null,null,null,null,null)
+B.Up=new A.hb(B.a_6,null,null,null,null,null,null,null,null,null,null,null,null,B.aO,null,null,null,B.C,null)
 B.a_v=new A.b0("Please select players to form teams.",null,null,null,null,null,null,null,null,null)
 B.Uq=new A.hb(B.a_v,null,null,null,null,null,null,null,null,null,null,null,null,B.aO,null,null,null,B.C,null)
 B.a_G=new A.b0("The number of players must be even to generate teams.",null,null,null,null,null,null,null,null,null)
 B.Bs=new A.hb(B.a_G,null,null,null,null,null,null,null,null,null,null,null,null,B.aO,null,null,null,B.C,null)
-B.a_0=new A.b0("Please complete all fields and select players",null,null,null,null,null,null,null,null,null)
-B.Ur=new A.hb(B.a_0,null,null,null,null,null,null,null,null,null,null,null,null,B.aO,null,null,null,B.C,null)
+B.a_1=new A.b0("Please complete all fields and select players",null,null,null,null,null,null,null,null,null)
+B.Ur=new A.hb(B.a_1,null,null,null,null,null,null,null,null,null,null,null,null,B.aO,null,null,null,B.C,null)
 B.Bt=new A.FI(0,"permissive")
 B.Us=new A.FI(1,"normal")
 B.Ut=new A.FI(2,"forced")
@@ -110205,15 +110204,15 @@ B.ZS=new A.b0("Save",null,null,null,null,null,null,null,null,null)
 B.ZT=new A.b0("Continue",null,null,null,null,null,null,null,null,null)
 B.ZU=new A.b0("OK",null,null,null,null,null,null,null,null,null)
 B.BV=new A.b0("Cancel",null,null,null,null,null,null,null,null,null)
-B.ZX=new A.b0("Top Scorers",null,B.mc,null,null,null,null,null,null,null)
-B.ZY=new A.b0("Add Group",null,null,null,null,null,null,null,null,null)
-B.ZZ=new A.b0("Created Teams:",null,B.em,null,null,null,null,null,null,null)
+B.ZW=new A.b0("teams",null,B.iI,null,null,null,null,null,null,null)
+B.ZY=new A.b0("Top Scorers",null,B.mc,null,null,null,null,null,null,null)
+B.ZZ=new A.b0("Add Group",null,null,null,null,null,null,null,null,null)
+B.a__=new A.b0("Created Teams:",null,B.em,null,null,null,null,null,null,null)
 B.BW=new A.b0("Create Tournament",null,null,null,null,null,null,null,null,null)
-B.a_1=new A.b0("type",null,B.iI,null,null,null,null,null,null,null)
-B.a_2=new A.b0("No top scorers yet.",null,null,null,null,null,null,null,null,null)
+B.a_2=new A.b0("type",null,B.iI,null,null,null,null,null,null,null)
+B.a_3=new A.b0("No top scorers yet.",null,null,null,null,null,null,null,null,null)
 B.iJ=new A.b0("Make Groups",null,null,null,null,null,null,null,null,null)
-B.a_4=new A.b0("Please select an even number of players to form teams.",null,null,null,null,null,null,null,null,null)
-B.a_6=new A.b0("players",null,B.iI,null,null,null,null,null,null,null)
+B.a_5=new A.b0("Please select an even number of players to form teams.",null,null,null,null,null,null,null,null,null)
 B.We=new A.o(!0,null,null,null,null,null,18,B.ab,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a_e=new A.b0("Select Players:",null,B.We,null,null,null,null,null,null,null)
 B.a_g=new A.b0("Sign Up",null,null,null,null,null,null,null,null,null)
