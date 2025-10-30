@@ -3,6 +3,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tourney_app/pages/home_page.dart';
 import 'signup_page.dart';
 
+Future<void> sendResetEmailQuick(String email) async {
+  final auth = FirebaseAuth.instance;
+
+  final actionCodeSettings = ActionCodeSettings(
+    url: 'https://khanomair.github.io/tournamentOrganizer/',
+    handleCodeInApp: false,
+    androidPackageName: null,
+    androidInstallApp: false,
+    dynamicLinkDomain: null,
+  );
+
+  await auth.sendPasswordResetEmail(
+    email: email.trim(),
+    actionCodeSettings: actionCodeSettings,
+  );
+}
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -14,6 +31,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isSendingReset = false;
 
   void loginUser() async {
     setState(() {
@@ -37,6 +55,43 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _isLoading = false;
     });
+  }
+
+  Future<void> _sendPasswordResetEmail() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email to reset the password')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSendingReset = true;
+    });
+
+    try {
+      await sendResetEmailQuick(email);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Reset link sent to $email')));
+    } on FirebaseAuthException catch (e) {
+      final message =
+          e.message ?? 'Could not send reset email. Please try again.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unexpected error trying to send reset link'),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSendingReset = false;
+      });
+    }
   }
 
   @override
@@ -112,7 +167,19 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     ),
                                   ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 12),
+                            _isSendingReset
+                                ? const CircularProgressIndicator()
+                                : TextButton(
+                                    onPressed: _sendPasswordResetEmail,
+                                    child: const Text(
+                                      'Forgot password?',
+                                      style: TextStyle(color: Colors.green),
+                                     
+                                    ),
+                                  ),
+
+                            const SizedBox(height: 2),
                             TextButton(
                               onPressed: () {
                                 Navigator.push(
