@@ -135,15 +135,17 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                         ? Icon(Icons.edit, color: Colors.grey)
                         : null,
                     onTap: () {
+                      final parentContext = context;
                       String streamUrl = '';
                       if (widget.isAdmin) {
                         int team1Score = match.scores.team1;
                         int team2Score = match.scores.team2;
                         List goals = [0, 0, 0, 0];
                         showDialog(
-                          context: context,
-                          builder: (context) {
+                          context: parentContext,
+                          builder: (_) {
                             bool changingTeams = false;
+                            bool isSaving = false;
                             return StatefulBuilder(
                               builder: (context, setState) {
                                 return AlertDialog(
@@ -460,63 +462,112 @@ class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
+                                      onPressed: isSaving
+                                          ? null
+                                          : () {
+                                              Navigator.of(context).pop();
+                                            },
                                       child: const Text('Cancel'),
                                     ),
-                                    TextButton(
-                                      onPressed: () async {
-                                        if (changingTeams) {
-                                          if (streamUrl.trim().isNotEmpty) {
-                                            // Update stream URL logic
-                                            await updateMatchStreamUrl(
-                                              tournamentId:
-                                                  widget.tournament.id,
-                                              roundId: round.id,
-                                              matchId: match.id,
-                                              streamUrl: streamUrl,
+                                    if (isSaving)
+                                      const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
+                                        child: SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      TextButton(
+                                        onPressed: () async {
+                                          setState(() {
+                                            isSaving = true;
+                                          });
+                                          try {
+                                            if (changingTeams) {
+                                              if (streamUrl.trim().isNotEmpty) {
+                                                await updateMatchStreamUrl(
+                                                  tournamentId:
+                                                      widget.tournament.id,
+                                                  roundId: round.id,
+                                                  matchId: match.id,
+                                                  streamUrl: streamUrl,
+                                                );
+                                              }
+                                              await updateMatchTeams(
+                                                tournamentId:
+                                                    widget.tournament.id,
+                                                roundId: round.id,
+                                                matchId: match.id,
+                                                newTeam1Id: newTeam1,
+                                                newTeam2Id: newTeam2,
+                                              );
+                                              if (!mounted) return;
+                                              Navigator.of(context).pop();
+                                              return;
+                                            }
+
+                                            if (streamUrl.trim().isNotEmpty) {
+                                              await updateMatchStreamUrl(
+                                                tournamentId:
+                                                    widget.tournament.id,
+                                                roundId: round.id,
+                                                matchId: match.id,
+                                                streamUrl: streamUrl,
+                                              );
+                                            }
+
+                                            if (match.winner.trim().isEmpty) {
+                                              await updateMatchScore(
+                                                tournamentId:
+                                                    widget.tournament.id,
+                                                roundId: round.id,
+                                                matchId: match.id,
+                                                team1Score: team1Score,
+                                                team2Score: team2Score,
+                                              );
+                                              if (!mounted) return;
+                                              Navigator.of(context).pop();
+                                              // Navigator.of(parentContext)
+                                              //     .pop();
+                                              return;
+                                            } else {
+                                              if (!mounted) return;
+                                              ScaffoldMessenger.of(
+                                                parentContext,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Match already has a winner. Scores unchanged.',
+                                                  ),
+                                                ),
+                                              );
+                                              Navigator.of(context).pop();
+                                              return;
+                                            }
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            setState(() {
+                                              isSaving = false;
+                                            });
+                                            ScaffoldMessenger.of(
+                                              parentContext,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Failed to update score. Please try again.',
+                                                ),
+                                              ),
                                             );
                                           }
-                                          // Update teams logic
-                                          await updateMatchTeams(
-                                            tournamentId: widget.tournament.id,
-                                            roundId: round.id,
-                                            matchId: match.id,
-                                            newTeam1Id: newTeam1,
-                                            newTeam2Id: newTeam2,
-                                          );
-                                        }
-                                        // Save scores logic
-                                        else {
-                                          if (streamUrl.trim().isNotEmpty) {
-                                            // Update stream URL logic
-                                            await updateMatchStreamUrl(
-                                              tournamentId:
-                                                  widget.tournament.id,
-                                              roundId: round.id,
-                                              matchId: match.id,
-                                              streamUrl: streamUrl,
-                                            );
-                                          }
-                                          if (match.winner.trim().isEmpty) {
-                                            await updateMatchScore(
-                                              tournamentId:
-                                                  widget.tournament.id,
-                                              roundId: round.id,
-                                              matchId: match.id,
-                                              team1Score: team1Score,
-                                              team2Score: team2Score,
-                                            );
-                                          } else {
-                                            print('Not Updating ');
-                                            // Navigator.of(context).pop();
-                                          }
-                                        }
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('Save'),
-                                    ),
+                                        },
+                                        child: const Text('Save'),
+                                      ),
                                   ],
                                 );
                               },
