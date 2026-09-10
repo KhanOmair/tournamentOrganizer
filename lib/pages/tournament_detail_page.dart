@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:tourney_app/models/player.dart';
 import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/utils/match_crud.dart';
+import 'package:tourney_app/utils/theme_data.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
 import 'package:tourney_app/widgets/podium_widget.dart';
 import 'package:tourney_app/widgets/tourney_rounds_widget.dart';
 import 'package:tourney_app/widgets/standings_table.dart';
@@ -12,333 +13,248 @@ class TournamentDetailPage extends StatefulWidget {
   final Tournament tournament;
   final bool isAdmin;
   const TournamentDetailPage({
-    Key? key,
+    super.key,
     required this.tournament,
     required this.isAdmin,
-  }) : super(key: key);
-
+  });
   @override
-  _TournamentDetailPageState createState() => _TournamentDetailPageState();
+  State<TournamentDetailPage> createState() => _TournamentDetailPageState();
 }
 
-class _TournamentDetailPageState extends State<TournamentDetailPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  late Player loggedInPlayer;
-
-  int get matchesLeft {
-    int matches = 0;
-    for (var round in widget.tournament.rounds) {
-      for (var match in round.matchIds) {
-        if (match.status != 'completed') {
-          matches++;
-        }
-      }
-    }
-    return matches;
-  }
-
+class _TournamentDetailPageState extends State<TournamentDetailPage> {
+  late final Stream<DocumentSnapshot<Map<String, dynamic>>> _tournament;
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tournament = FirebaseFirestore.instance
+        .collection('tournaments')
+        .doc(widget.tournament.id)
+        .snapshots();
   }
 
   @override
+  Widget build(BuildContext context) =>
+      StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: _tournament,
+        builder: (context, snapshot) {
+          final data = snapshot.data?.data();
+          final tournament = data == null
+              ? widget.tournament
+              : Tournament.fromFirestore(data, snapshot.data!.id);
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('TOURNAMENT'),
+              actions: [
+                if (widget.isAdmin &&
+                    !snapshot.hasError &&
+                    (!snapshot.hasData || snapshot.data!.exists))
+                  IconButton(
+                    tooltip: 'Add match',
+                    icon: const Icon(Icons.add),
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => _AddMatchDialog(tournament: tournament),
+                    ),
+                  ),
+                const SizedBox(width: 12),
+              ],
+            ),
+            body: snapshot.hasError
+                ? const CourtEmptyState(
+                    title: 'Couldn’t load this tournament',
+                    message: 'Check your connection and try again.',
+                  )
+                : snapshot.hasData && !snapshot.data!.exists
+                ? const CourtEmptyState(title: 'Tournament no longer available')
+                : TournamentDetailBody(
+                    tournament: tournament,
+                    isAdmin: widget.isAdmin,
+                  ),
+          );
+        },
+      );
+}
+
+class TournamentDetailBody extends StatelessWidget {
+  final Tournament tournament;
+  final bool isAdmin;
+  const TournamentDetailBody({
+    super.key,
+    required this.tournament,
+    required this.isAdmin,
+  });
+
+  @override
+  Widget build(BuildContext context) => DefaultTabController(
+    length: 3,
+    initialIndex: 1,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CourtPage(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  CourtStatus(status: tournament.status),
+                  Text(
+                    '${tournament.sport.toUpperCase()} · ${tournament.type}',
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                tournament.name.toUpperCase(),
+                style: Theme.of(context).textTheme.headlineLarge,
+              ),
+            ],
+          ),
+        ),
+        const TabBar(
+          tabs: [
+            Tab(text: 'Standings'),
+            Tab(text: 'Matches'),
+            Tab(text: 'Teams'),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            children: [
+              StandingsTable(
+                teams: tournament.teams,
+                groups: tournament.groups,
+              ),
+              TournamentRoundsWidget(tournament: tournament, isAdmin: isAdmin),
+              PodiumWidget(
+                teams: tournament.teams,
+                groups: tournament.groups,
+                topScorers: tournament.topScorers,
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _AddMatchDialog extends StatefulWidget {
+  final Tournament tournament;
+  const _AddMatchDialog({required this.tournament});
+  @override
+  State<_AddMatchDialog> createState() => _AddMatchDialogState();
+}
+
+class _AddMatchDialogState extends State<_AddMatchDialog> {
+  final _form = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  Team? _home;
+  Team? _away;
+  bool _saving = false;
+  @override
   void dispose() {
-    _tabController.dispose();
+    _name.dispose();
     super.dispose();
   }
 
-  void showAddMatchDialog() {
-    final roundNameController = TextEditingController();
-    Team? selectedTeam1;
-    Team? selectedTeam2;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Match'),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: roundNameController,
-                    decoration: const InputDecoration(labelText: 'Round Name'),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<Team>(
-                    hint: const Text("Select Home Team"),
-                    value: selectedTeam1,
-                    items: widget.tournament.teams.map((team) {
-                      return DropdownMenuItem(
-                        value: team,
-                        child: Text(team.teamName),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() => selectedTeam1 = value);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<Team>(
-                    hint: const Text("Select Away Team"),
-                    value: selectedTeam2,
-                    items: widget.tournament.teams.map((team) {
-                      return DropdownMenuItem(
-                        value: team,
-                        child: Text(team.teamName),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() => selectedTeam2 = value);
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+  Future<void> _save() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await createMatch(
+        tournamentId: widget.tournament.id,
+        homeTeam: _home,
+        awayTeam: _away,
+        roundName: _name.text.trim(),
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not create the match. Please try again.'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              final roundName = roundNameController.text.trim();
-
-              if (roundName.isEmpty ||
-                  selectedTeam1 == null ||
-                  selectedTeam2 == null ||
-                  selectedTeam1 == selectedTeam2) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Please complete all fields and select different teams.',
-                    ),
-                  ),
-                );
-                return;
-              } else {
-                // Call the function to create a match
-                createMatch(
-                      tournamentId: widget.tournament.id,
-                      roundName: roundName,
-                      homeTeam: selectedTeam1!,
-                      awayTeam: selectedTeam2!,
-                    )
-                    .then((_) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Match created successfully!'),
-                        ),
-                      );
-                      Navigator.of(context).pop(); // Close the dialog
-                    })
-                    .catchError((error) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error creating match: $error')),
-                      );
-                    });
-              }
-
-              // onMatchCreated(roundName, selectedTeam1!, selectedTeam2!);
-            },
-            child: const Text('Create Match'),
-          ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tournament Details'),
-        backgroundColor: Colors.deepOrangeAccent,
-        actions: [
-          if (widget.isAdmin)
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () {
-                // open dialog box to add a new match to the tournament
-                showAddMatchDialog();
-              },
-            ),
-        ],
-      ),
-      body: SafeArea(
+  Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
+    title: const Text('ADD A MATCH'),
+    content: SizedBox(
+      width: 440,
+      child: Form(
+        key: _form,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 20),
-
-            // Row with CircleAvatar and Tournament Title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  // CircleAvatar(
-                  //   radius: 30,
-                  //   // backgroundImage: NetworkImage(widget.tournamentImageUrl),
-                  //   backgroundColor: Colors.grey.shade300,
-                  // ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      widget.tournament.name,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            TextFormField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Round name'),
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'Enter a round name'
+                  : null,
             ),
-
             const SizedBox(height: 20),
-
-            // Tabs
-            TabBar(
-              controller: _tabController,
-              labelColor: Colors.deepOrangeAccent,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: Colors.deepOrangeAccent,
-              tabs: const [
-                Tab(text: "Table"),
-                Tab(text: "Matches"),
-                Tab(text: "Teams"),
-              ],
+            _teamPicker(
+              'Home team',
+              _home,
+              (value) => setState(() => _home = value),
             ),
-
-            // Tab Views
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  // ------  Table Tab UI  -------
-                  Center(
-                    child: StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('tournaments')
-                          .doc(widget.tournament.id)
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return CircularProgressIndicator();
-                        }
-                        final tournamentMap =
-                            snapshot.data!.data() as Map<String, dynamic>;
-                        Tournament mtournament = Tournament.fromFirestore(
-                          tournamentMap,
-                          snapshot.data!.id,
-                        );
-
-                        return StandingsTable(
-                          teams: mtournament.teams,
-                          groups: mtournament.groups,
-                        );
-                      },
-                    ),
-                  ),
-                  //  ------   Matches Tab UI   -------
-                  Center(
-                    child: StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('tournaments')
-                          .doc(widget.tournament.id)
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return CircularProgressIndicator();
-                        }
-
-                        final tournamentMap =
-                            snapshot.data!.data() as Map<String, dynamic>;
-                        Tournament tournament = Tournament.fromFirestore(
-                          tournamentMap,
-                          snapshot.data!.id,
-                        );
-                        print(tournament);
-
-                        // Build your tournament details UI
-                        return TournamentRoundsWidget(
-                          tournament: tournament,
-                          isAdmin: widget.isAdmin,
-                        );
-                      },
-                    ),
-                  ),
-                  // -------  Teams Tab UI -------
-                  Center(
-                    child: StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('tournaments')
-                          .doc(widget.tournament.id)
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return CircularProgressIndicator();
-                        }
-
-                        final tournamentMap =
-                            snapshot.data!.data() as Map<String, dynamic>;
-                        Tournament tournament = Tournament.fromFirestore(
-                          tournamentMap,
-                          snapshot.data!.id,
-                        );
-                        print(tournament);
-
-                        // Build your tournament details UI
-                        return PodiumWidget(
-                          teams: tournament.teams,
-                          groups: tournament.groups,
-                          topScorers: tournament.topScorers,
-                        );
-                      },
-                    ),
-                    // child: Text(
-                    //   "Teams UI Here",
-                    //   style: TextStyle(fontSize: 18, color: Colors.grey),
-                    // ),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 20),
+            _teamPicker(
+              'Away team',
+              _away,
+              (value) => setState(() => _away = value),
             ),
           ],
         ),
       ),
-      // floatingActionButton:
-      //     widget.isAdmin &&
-      //         matchesLeft == 0
-      //         // &&
-      //         // _tabController.index == 1
-      //         &&
-      //         widget.tournament.rounds.last.name != 'Final'
-      //     ? Padding(
-      //         padding: const EdgeInsets.only(bottom: 15.0),
-      //         child: FloatingActionButton.extended(
-      //           backgroundColor: Colors.deepOrangeAccent,
-      //           label: const Text('Create Final'),
-      //           onPressed: () async {
-      //             try {
-      //               await createFinalMatch(widget.tournament.id);
-      //             } catch (e) {
-      //               ScaffoldMessenger.of(context).showSnackBar(
-      //                 SnackBar(content: Text('Error creating final match: $e')),
-      //               );
-      //             }
-      //           },
-      //         ),
-      //       )
-      //     : SizedBox.shrink(),
-      // floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    );
-  }
+    ),
+    actions: [
+      TextButton(
+        onPressed: _saving ? null : () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _saving ? null : _save,
+        child: Text(_saving ? 'Creating…' : 'Create match'),
+      ),
+    ],
+  );
+
+  Widget _teamPicker(
+    String label,
+    Team? value,
+    ValueChanged<Team?> onChanged,
+  ) => DropdownButtonFormField<Team>(
+    value: value,
+    isExpanded: true,
+    decoration: InputDecoration(labelText: label),
+    items: widget.tournament.teams
+        .map(
+          (t) => DropdownMenuItem(
+            value: t,
+            child: Text(t.teamName, overflow: TextOverflow.ellipsis),
+          ),
+        )
+        .toList(),
+    onChanged: _saving ? null : onChanged,
+    validator: (value) => value == null
+        ? 'Select a team'
+        : _home != null && _home == _away
+        ? 'Choose two different teams'
+        : null,
+  );
 }

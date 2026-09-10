@@ -1,13 +1,17 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:tourney_app/models/match.dart';
+import 'package:tourney_app/models/round.dart';
+import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/utils/match_crud.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:tourney_app/utils/theme_data.dart';
+import 'package:tourney_app/widgets/court_match_card.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
 
-class TournamentRoundsWidget extends StatefulWidget {
+class TournamentRoundsWidget extends StatelessWidget {
   final Tournament tournament;
   final bool isAdmin;
-
   const TournamentRoundsWidget({
     super.key,
     required this.tournament,
@@ -15,574 +19,381 @@ class TournamentRoundsWidget extends StatefulWidget {
   });
 
   @override
-  State<TournamentRoundsWidget> createState() => _TournamentRoundsWidgetState();
+  Widget build(BuildContext context) {
+    if (tournament.rounds.isEmpty) {
+      return const CourtEmptyState(
+        title: 'No matches yet',
+        message: 'Your organizer can add the first match.',
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      itemCount: tournament.rounds.length,
+      itemBuilder: (context, index) {
+        final round = tournament.rounds[index];
+        return CourtPage(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ExpansionTile(
+            initiallyExpanded: true,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+            title: Text(
+              round.name.toUpperCase(),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            subtitle: Text(
+              '${round.matchIds.length} matches',
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+            childrenPadding: const EdgeInsets.only(top: 12, bottom: 16),
+            children: round.matchIds
+                .map(
+                  (match) => CourtMatchCard(
+                    match: match,
+                    isAdmin: isAdmin,
+                    onTap: () => showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => MatchEditorDialog(
+                        tournament: tournament,
+                        round: round,
+                        match: match,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      },
+    );
+  }
 }
 
-class _TournamentRoundsWidgetState extends State<TournamentRoundsWidget> {
-  String newTeam1 = '';
-  String newTeam2 = '';
+class MatchEditorDialog extends StatefulWidget {
+  final Tournament tournament;
+  final Round round;
+  final GameMatch match;
+  const MatchEditorDialog({
+    super.key,
+    required this.tournament,
+    required this.round,
+    required this.match,
+  });
+  @override
+  State<MatchEditorDialog> createState() => _MatchEditorDialogState();
+}
+
+class _MatchEditorDialogState extends State<MatchEditorDialog> {
+  final _form = GlobalKey<FormState>();
+  late final TextEditingController _homeScore;
+  late final TextEditingController _awayScore;
+  late final TextEditingController _stream;
+  late String _homeId;
+  late String _awayId;
+  final Map<String, int> _goalChanges = {};
+  bool _changeTeams = false;
+  bool _saving = false;
+  bool _scoreSaved = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _homeScore = TextEditingController(text: '${widget.match.scores.team1}');
+    _awayScore = TextEditingController(text: '${widget.match.scores.team2}');
+    _stream = TextEditingController(text: widget.match.streamUrl);
+    _homeId = widget.match.team1.teamId;
+    _awayId = widget.match.team2.teamId;
+  }
+
+  @override
+  void dispose() {
+    _homeScore.dispose();
+    _awayScore.dispose();
+    _stream.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_form.currentState!.validate() || _saving) return;
+    if (_changeTeams && _homeId == _awayId) {
+      setState(() => _error = 'Choose two different teams.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      if (_changeTeams) {
+        await updateMatchTeams(
+          tournamentId: widget.tournament.id,
+          roundId: widget.round.id,
+          matchId: widget.match.id,
+          newTeam1Id: _homeId,
+          newTeam2Id: _awayId,
+        );
+      } else if (widget.match.winner.isEmpty && !_scoreSaved) {
+        await updateMatchScore(
+          tournamentId: widget.tournament.id,
+          roundId: widget.round.id,
+          matchId: widget.match.id,
+          team1Score: int.parse(_homeScore.text),
+          team2Score: int.parse(_awayScore.text),
+        );
+        _scoreSaved = true;
+      }
+      if (_stream.text.trim() != widget.match.streamUrl) {
+        await updateMatchStreamUrl(
+          tournamentId: widget.tournament.id,
+          roundId: widget.round.id,
+          matchId: widget.match.id,
+          streamUrl: _stream.text.trim(),
+        );
+      }
+      if (!_changeTeams) {
+        for (final id in _goalChanges.keys.toList()) {
+          final delta = _goalChanges[id]!;
+          if (delta == 0) continue;
+          await addPlayerGoal(
+            tournamentId: widget.tournament.id,
+            playerId: id,
+            goals: delta,
+          );
+          _goalChanges[id] = 0;
+        }
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error =
+              'Could not save all changes. Check your connection and try again.';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: ListView.builder(
-        itemCount: widget.tournament.rounds.length,
-        itemBuilder: (context, index) {
-          final round = widget.tournament.rounds[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: ExpansionTile(
-              initiallyExpanded: true,
-              title: Text(
-                round.name,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              children: round.matchIds.map((match) {
-                return Card(
-                  color: (match.status == 'completed')
-                      ? Colors.green[50]
-                      : null,
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+    final match = widget.match;
+    final scorers = widget.tournament.topScorers
+        .where((s) => match.playerIds.contains(s.id))
+        .toList();
+    return PopScope(
+      canPop: !_saving,
+      child: AlertDialog(
+        scrollable: true,
+        title: const Text('EDIT MATCH'),
+        content: SizedBox(
+          width: 460,
+          child: Form(
+            key: _form,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (match.winner.isNotEmpty) ...[
+                  const Text(
+                    'Result recorded. Scores are locked.',
+                    style: TextStyle(color: AppColors.muted),
                   ),
-                  child: ListTile(
-                    // leading: CircleAvatar(
-                    //   backgroundColor: _getStatusColor(match.status),
-                    //   child: Icon(
-                    //     match.status == 'completed'
-                    //         ? Icons.check
-                    //         : Icons.schedule,
-                    //     color: Colors.white,
-                    //   ),
-                    // ),
-                    title: Center(
+                  const SizedBox(height: 20),
+                ],
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _scoreField(_homeScore, match.team1.teamName),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(12, 42, 12, 0),
+                      child: Text(
+                        ':',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                    ),
+                    Expanded(
+                      child: _scoreField(_awayScore, match.team2.teamName),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Change teams'),
+                  value: _changeTeams,
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() => _changeTeams = value),
+                ),
+                if (_changeTeams) ...[
+                  const SizedBox(height: 12),
+                  _teamPicker(
+                    'Home team',
+                    _homeId,
+                    (value) => setState(() => _homeId = value!),
+                  ),
+                  const SizedBox(height: 16),
+                  _teamPicker(
+                    'Away team',
+                    _awayId,
+                    (value) => setState(() => _awayId = value!),
+                  ),
+                ],
+                if (!_changeTeams &&
+                    widget.tournament.sport == 'fifa' &&
+                    !match.playerIds.contains('BYE') &&
+                    scorers.isNotEmpty) ...[
+                  const Divider(height: 36),
+                  Text(
+                    'PLAYER GOALS',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Tournament totals. Changes apply when you save.',
+                    style: TextStyle(color: AppColors.muted, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final scorer in scorers)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                match.team1.teamName,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '${match.scores.team1}',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ],
+                          Expanded(child: Text(scorer.name)),
+                          IconButton(
+                            tooltip: 'Remove a goal for ${scorer.name}',
+                            onPressed:
+                                _saving ||
+                                    scorer.goals +
+                                            (_goalChanges[scorer.id] ?? 0) <=
+                                        0
+                                ? null
+                                : () => setState(
+                                    () => _goalChanges.update(
+                                      scorer.id,
+                                      (v) => v - 1,
+                                      ifAbsent: () => -1,
+                                    ),
+                                  ),
+                            icon: const Icon(Icons.remove_circle_outline),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text('vs', style: TextStyle(fontSize: 16)),
-                              Text(':', style: TextStyle(fontSize: 16)),
-                            ],
+                          Text(
+                            '${scorer.goals + (_goalChanges[scorer.id] ?? 0)}',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                match.team2.teamName,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '${match.scores.team2}',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ],
+                          IconButton(
+                            tooltip: 'Add a goal for ${scorer.name}',
+                            onPressed: _saving
+                                ? null
+                                : () => setState(
+                                    () => _goalChanges.update(
+                                      scorer.id,
+                                      (v) => v + 1,
+                                      ifAbsent: () => 1,
+                                    ),
+                                  ),
+                            icon: const Icon(Icons.add_circle_outline),
                           ),
                         ],
                       ),
                     ),
-                    subtitle: // Display stream URL if available
-                    match.streamUrl.trim().isNotEmpty
-                        ? GestureDetector(
-                            onTap: () {
-                              launchUrl(
-                                Uri.parse(match.streamUrl),
-                                mode: LaunchMode.externalApplication,
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16.0,
-                                right: 16,
-                                top: 16,
-                                bottom: 2,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'Stream URL: ${match.streamUrl}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        : null,
-
-                    trailing: widget.isAdmin
-                        ? Icon(Icons.edit, color: Colors.grey)
-                        : null,
-                    onTap: () {
-                      final parentContext = context;
-                      String streamUrl = '';
-                      if (widget.isAdmin) {
-                        int team1Score = match.scores.team1;
-                        int team2Score = match.scores.team2;
-                        List goals = [0, 0, 0, 0];
-                        showDialog(
-                          context: parentContext,
-                          builder: (_) {
-                            bool changingTeams = false;
-                            bool isSaving = false;
-                            return StatefulBuilder(
-                              builder: (context, setState) {
-                                return AlertDialog(
-                                  title: Center(child: Text('Edit Scores')),
-                                  content: SizedBox(
-                                    width: 500,
-                                    // height: 300,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Row(
-                                          // mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: [
-                                            Container(
-                                              width: 100,
-                                              child: Column(
-                                                children: [
-                                                  Text(match.team1.teamName),
-                                                  SizedBox(height: 8),
-                                                  TextField(
-                                                    keyboardType:
-                                                        TextInputType.number,
-                                                    decoration: InputDecoration(
-                                                      border:
-                                                          OutlineInputBorder(),
-                                                      hintText: 'Score',
-                                                    ),
-                                                    onChanged: (value) {
-                                                      team1Score =
-                                                          int.tryParse(value) ??
-                                                          0;
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Container(
-                                              width: 100,
-                                              child: Column(
-                                                children: [
-                                                  Text(match.team2.teamName),
-                                                  SizedBox(height: 8),
-                                                  TextField(
-                                                    keyboardType:
-                                                        TextInputType.number,
-                                                    decoration: InputDecoration(
-                                                      border:
-                                                          OutlineInputBorder(),
-                                                      hintText: 'Score',
-                                                    ),
-                                                    onChanged: (value) {
-                                                      team2Score =
-                                                          int.tryParse(value) ??
-                                                          0;
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        if (widget.tournament.sport == 'fifa' &&
-                                            !match.playerIds.contains('BYE'))
-                                          SizedBox(height: 16),
-                                        if (widget.tournament.sport == 'fifa' &&
-                                            !match.playerIds.contains('BYE'))
-                                          Text(
-                                            'Goals Scored',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        // SizedBox(height: 12),
-                                        if (widget.tournament.sport == 'fifa' &&
-                                            !match.playerIds.contains('BYE'))
-                                          Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: StreamBuilder(
-                                              stream: FirebaseFirestore.instance
-                                                  .collection('tournaments')
-                                                  .doc(widget.tournament.id)
-                                                  .snapshots()
-                                                  .map((snapshot) {
-                                                    if (!snapshot.exists)
-                                                      return [];
-
-                                                    final data = snapshot
-                                                        .data()!;
-                                                    return (data['topScorers']
-                                                                as List<
-                                                                  dynamic
-                                                                >? ??
-                                                            [])
-                                                        .map(
-                                                          (scorer) => {
-                                                            'playerId':
-                                                                scorer['playerId'] ??
-                                                                '',
-                                                            'goals':
-                                                                scorer['goals'] ??
-                                                                0,
-                                                            'name':
-                                                                scorer['name'] ??
-                                                                '',
-                                                          },
-                                                        )
-                                                        .toList();
-                                                  }),
-
-                                              builder: (context, asyncSnapshot) {
-                                                final mscorers =
-                                                    asyncSnapshot.data!;
-                                                return ListView.builder(
-                                                  shrinkWrap: true,
-                                                  physics:
-                                                      const NeverScrollableScrollPhysics(),
-                                                  itemCount:
-                                                      match.playerIds.length,
-                                                  itemBuilder: (context, index) {
-                                                    var scorer = mscorers.firstWhere(
-                                                      (scorer) =>
-                                                          scorer['playerId'] ==
-                                                          match
-                                                              .playerIds[index],
-                                                      // orElse: () => null,
-                                                    );
-
-                                                    return Card(
-                                                      child: ListTile(
-                                                        title: Text(
-                                                          scorer['name'],
-                                                        ),
-                                                        trailing: Row(
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
-                                                          children: [
-                                                            IconButton(
-                                                              icon: const Icon(
-                                                                Icons.remove,
-                                                              ),
-                                                              onPressed: () async {
-                                                                // addPlayerGoal(
-                                                                //   tournamentId: widget
-                                                                //       .tournament
-                                                                //       .id,
-                                                                //   goals: -1,
-
-                                                                //   playerId: scorer.id,
-                                                                //   playerName:
-                                                                //       scorer.name,
-                                                                // );
-                                                                setState(() {
-                                                                  goals[index]--;
-                                                                });
-
-                                                                await addPlayerGoal(
-                                                                  tournamentId:
-                                                                      widget
-                                                                          .tournament
-                                                                          .id,
-                                                                  playerId:
-                                                                      scorer['playerId'],
-                                                                  goals: -1,
-                                                                );
-                                                              },
-                                                            ),
-                                                            Text(
-                                                              '${scorer['goals']}',
-                                                              style:
-                                                                  const TextStyle(
-                                                                    fontSize:
-                                                                        18,
-                                                                  ),
-                                                            ),
-                                                            IconButton(
-                                                              icon: const Icon(
-                                                                Icons.add,
-                                                              ),
-                                                              onPressed: () async {
-                                                                // addPlayerGoal(
-                                                                //   tournamentId: widget
-                                                                //       .tournament
-                                                                //       .id,
-                                                                //   goals: -1,
-
-                                                                //   playerId: scorer.id,
-                                                                //   playerName:
-                                                                //       scorer.name,
-                                                                // );
-                                                                setState(() {
-                                                                  goals[index]++;
-                                                                });
-                                                                await addPlayerGoal(
-                                                                  tournamentId:
-                                                                      widget
-                                                                          .tournament
-                                                                          .id,
-                                                                  playerId:
-                                                                      scorer['playerId'],
-                                                                  goals: 1,
-                                                                );
-                                                              },
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        SizedBox(height: 16),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'Change Teams',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            Spacer(),
-                                            Switch(
-                                              value: changingTeams,
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  changingTeams = value;
-                                                });
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 16),
-                                        if (changingTeams)
-                                          Text(
-                                            'Edit Teams',
-                                            style: TextStyle(fontSize: 16),
-                                          ),
-
-                                        SizedBox(width: 16),
-
-                                        if (changingTeams)
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceEvenly,
-                                            children: [
-                                              // dropdown for team1
-                                              DropdownButton<String>(
-                                                value: match.team1.teamId,
-                                                items: widget.tournament.teams
-                                                    .map(
-                                                      (team) =>
-                                                          DropdownMenuItem<
-                                                            String
-                                                          >(
-                                                            value: team.teamId,
-                                                            child: Text(
-                                                              team.teamName,
-                                                            ),
-                                                          ),
-                                                    )
-                                                    .toList(),
-                                                onChanged: (value) {
-                                                  if (value != null) {
-                                                    setState(() {
-                                                      newTeam1 = value;
-                                                    });
-                                                  }
-                                                },
-                                              ),
-                                              SizedBox(width: 16),
-                                              // dropdown for team2
-                                              DropdownButton<String>(
-                                                value: match.team2.teamId,
-                                                items: widget.tournament.teams
-                                                    .map(
-                                                      (team) =>
-                                                          DropdownMenuItem<
-                                                            String
-                                                          >(
-                                                            value: team.teamId,
-                                                            child: Text(
-                                                              team.teamName,
-                                                            ),
-                                                          ),
-                                                    )
-                                                    .toList(),
-                                                onChanged: (value) {
-                                                  if (value != null) {
-                                                    setState(() {
-                                                      newTeam2 = value;
-                                                    });
-                                                  }
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                        TextField(
-                                          decoration: InputDecoration(
-                                            border: OutlineInputBorder(),
-                                            hintText:
-                                                'Update the Stream Url (if any)',
-                                          ),
-                                          onChanged: (value) {
-                                            streamUrl = value;
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: isSaving
-                                          ? null
-                                          : () {
-                                              Navigator.of(context).pop();
-                                            },
-                                      child: const Text('Cancel'),
-                                    ),
-                                    if (isSaving)
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        child: SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      TextButton(
-                                        onPressed: () async {
-                                          setState(() {
-                                            isSaving = true;
-                                          });
-                                          try {
-                                            if (changingTeams) {
-                                              if (streamUrl.trim().isNotEmpty) {
-                                                await updateMatchStreamUrl(
-                                                  tournamentId:
-                                                      widget.tournament.id,
-                                                  roundId: round.id,
-                                                  matchId: match.id,
-                                                  streamUrl: streamUrl,
-                                                );
-                                              }
-                                              await updateMatchTeams(
-                                                tournamentId:
-                                                    widget.tournament.id,
-                                                roundId: round.id,
-                                                matchId: match.id,
-                                                newTeam1Id: newTeam1,
-                                                newTeam2Id: newTeam2,
-                                              );
-                                              if (!mounted) return;
-                                              Navigator.of(context).pop();
-                                              return;
-                                            }
-
-                                            if (streamUrl.trim().isNotEmpty) {
-                                              await updateMatchStreamUrl(
-                                                tournamentId:
-                                                    widget.tournament.id,
-                                                roundId: round.id,
-                                                matchId: match.id,
-                                                streamUrl: streamUrl,
-                                              );
-                                            }
-
-                                            if (match.winner.trim().isEmpty) {
-                                              await updateMatchScore(
-                                                tournamentId:
-                                                    widget.tournament.id,
-                                                roundId: round.id,
-                                                matchId: match.id,
-                                                team1Score: team1Score,
-                                                team2Score: team2Score,
-                                              );
-                                              if (!mounted) return;
-                                              Navigator.of(context).pop();
-                                              // Navigator.of(parentContext)
-                                              //     .pop();
-                                              return;
-                                            } else {
-                                              if (!mounted) return;
-                                              ScaffoldMessenger.of(
-                                                parentContext,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Match already has a winner. Scores unchanged.',
-                                                  ),
-                                                ),
-                                              );
-                                              Navigator.of(context).pop();
-                                              return;
-                                            }
-                                          } catch (e) {
-                                            if (!mounted) return;
-                                            setState(() {
-                                              isSaving = false;
-                                            });
-                                            ScaffoldMessenger.of(
-                                              parentContext,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Failed to update score. Please try again.',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        child: const Text('Save'),
-                                      ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                        ); // showDialog
-                      }
-                    },
+                ],
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _stream,
+                  enabled: !_saving,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Stream link (optional)',
+                    hintText: 'https://',
+                    prefixIcon: Icon(Icons.link),
                   ),
-                );
-              }).toList(),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) return null;
+                    final uri = Uri.tryParse(value.trim());
+                    return uri != null &&
+                            ['http', 'https'].contains(uri.scheme) &&
+                            uri.host.isNotEmpty
+                        ? null
+                        : 'Enter a valid https:// or http:// link';
+                  },
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  Text(_error!, style: const TextStyle(color: AppColors.error)),
+                ],
+              ],
             ),
-          );
-        },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: _saving ? null : _save,
+            child: Text(_saving ? 'Saving…' : 'Save changes'),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _scoreField(TextEditingController controller, String team) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(team, style: const TextStyle(fontWeight: FontWeight.w600)),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        enabled:
+            !_saving &&
+            !_changeTeams &&
+            widget.match.winner.isEmpty &&
+            !_scoreSaved,
+        textAlign: TextAlign.center,
+        style: courtHeading(36, color: AppColors.primary),
+        decoration: const InputDecoration(labelText: 'Score'),
+        validator: (value) =>
+            !_changeTeams && (value == null || int.tryParse(value) == null)
+            ? 'Enter a score'
+            : null,
+      ),
+    ],
+  );
+
+  Widget _teamPicker(
+    String label,
+    String selectedId,
+    ValueChanged<String?> onChanged,
+  ) {
+    final options = <String, Team>{
+      widget.match.team1.teamId: widget.match.team1,
+      widget.match.team2.teamId: widget.match.team2,
+      for (final team in widget.tournament.teams) team.teamId: team,
+    };
+    return DropdownButtonFormField<String>(
+      value: selectedId,
+      isExpanded: true,
+      decoration: InputDecoration(labelText: label),
+      items: options.values
+          .map(
+            (team) => DropdownMenuItem(
+              value: team.teamId,
+              child: Text(team.teamName, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(),
+      onChanged: _saving ? null : onChanged,
     );
   }
 }

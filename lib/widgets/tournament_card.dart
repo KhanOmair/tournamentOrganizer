@@ -1,346 +1,193 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
 import 'package:tourney_app/pages/tournament_detail_page.dart';
+import 'package:tourney_app/utils/theme_data.dart';
 import 'package:tourney_app/utils/tournament_crud.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
 
 class TournamentCard extends StatelessWidget {
   final Tournament tournament;
   final bool isAdmin;
-
-  List<Team> _sortTeams(List<Team> unsortedTeams) {
-    final sorted = List<Team>.from(unsortedTeams);
-    sorted.sort((a, b) {
-      // Sort by Points
-      if (b.points != a.points) return b.points.compareTo(a.points);
-
-      // If Points equal, sort by Goal Difference
-      if (b.goalDifference != a.goalDifference) {
-        return b.goalDifference.compareTo(a.goalDifference);
-      }
-
-      // If GD equal, sort by Wins
-      if (b.wins != a.wins) return b.wins.compareTo(a.wins);
-
-      // If all equal, sort alphabetically
-      return a.teamName.compareTo(b.teamName);
-    });
-    return sorted;
-  }
-
   const TournamentCard({
     super.key,
     required this.tournament,
     required this.isAdmin,
   });
 
-  int get matchesLeft {
-    int matches = 0;
-    for (var round in tournament.rounds) {
-      for (var match in round.matchIds) {
-        if (match.status != 'completed') {
-          matches++;
-        }
+  int get matchesLeft => tournament.rounds
+      .expand((r) => r.matchIds)
+      .where((m) => m.status != 'completed')
+      .length;
+
+  Future<void> _delete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete tournament?'),
+        content: Text('“${tournament.name}” and its matches will be removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep tournament'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await deleteTournament(tournament.id);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not delete the tournament.')),
+        );
       }
     }
-    return matches;
   }
 
-  Future<void> participateInTournament({
-    required String tournamentId,
-    required String playerId,
-  }) async {
-    final tournamentRef = FirebaseFirestore.instance
-        .collection('tournaments')
-        .doc(tournamentId);
-
-    final playerRef = FirebaseFirestore.instance
-        .collection('players')
-        .doc(playerId);
-
+  Future<void> _start(BuildContext context) async {
     try {
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final tournamentSnap = await transaction.get(tournamentRef);
-        final playerSnap = await transaction.get(playerRef);
-
-        if (!tournamentSnap.exists) {
-          throw Exception('Tournament not found');
-        }
-
-        if (!playerSnap.exists) {
-          throw Exception('Player not found');
-        }
-
-        List<dynamic> participants =
-            tournamentSnap['participants'] ?? <String>[];
-
-        if (participants.contains(playerId)) {
-          throw Exception('You have already joined this tournament');
-        }
-
-        // Add player to tournament participants
-        participants.add(playerId);
-        transaction.update(tournamentRef, {'participants': participants});
-
-        // Increment player's tournamentsPlayed count
-        int tournamentsPlayed = playerSnap['tournamentsPlayed'] ?? 0;
-        transaction.update(playerRef, {
-          'tournamentsPlayed': tournamentsPlayed + 1,
-        });
-      });
-
-      print('✅ Successfully joined tournament!');
-    } catch (e) {
-      print('❌ Error joining tournament: $e');
-      rethrow;
+      await updatetTournamentStatus(
+        tournamentId: tournament.id,
+        status: 'ongoing',
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not start the tournament.')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final upcoming = tournament.status.toLowerCase() == 'upcoming';
+    final completed = tournament.status.toLowerCase() == 'completed';
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // First Row: Icon and Tournament Name
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // const Icon(Icons.sports_esports, color: Colors.deepOrange),
-                CircleAvatar(),
-                const SizedBox(width: 8),
+                CourtStatus(status: tournament.status),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    tournament.name,
+                    tournament.sport.toUpperCase(),
+                    textAlign: TextAlign.right,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      color: AppColors.muted,
+                      fontSize: 12,
+                      letterSpacing: 1,
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Second Row: tourney info
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                tournament.status == 'completed'
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.emoji_events,
-                            size: 20,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 6),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _sortTeams(tournament.teams)[0].teamName,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Text(
-                                'Winners',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.schedule,
-                            size: 20,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 6),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '$matchesLeft',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Text(
-                                'matches left',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.person, size: 20, color: Colors.grey),
-                    const SizedBox(width: 6),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${tournament.teams.length}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text(
-                          'teams',
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.person, size: 20, color: Colors.grey),
-                    const SizedBox(width: 6),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tournament.type,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text(
-                          'type',
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Remove tournament Button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
                 if (isAdmin)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.remove_circle, color: Colors.red),
-                      onPressed: () async {
-                        try {
-                          await deleteTournament(tournament.id);
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error deleting tournament: $e'),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                Spacer(),
-                // view tournament details button
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Add your navigation or action here
-
-                      if (tournament.status == 'upcoming') {
-                        return;
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TournamentDetailPage(
-                              tournament: tournament,
-                              isAdmin: isAdmin,
-                            ),
-                          ),
-                        );
-                        print('Viewing ${tournament.name}');
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      // backgroundColor: Colors.deepOrangeAccent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  PopupMenuButton<String>(
+                    tooltip: 'Tournament actions',
+                    onSelected: (action) =>
+                        action == 'delete' ? _delete(context) : _start(context),
+                    itemBuilder: (_) => [
+                      if (upcoming)
+                        const PopupMenuItem(
+                          value: 'start',
+                          child: Text('Start tournament'),
+                        ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text(
+                          'Delete tournament',
+                          style: TextStyle(color: AppColors.error),
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 10,
-                      ),
-                    ),
-                    child: Text(
-                      tournament.status == 'upcoming'
-                          ? 'Starting at ${DateFormat('d MMMM y').format(tournament.startDate)}'
-                          : 'View',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                  ),
-                ),
-                Spacer(),
-                // change status button
-                if (isAdmin && tournament.status == 'upcoming')
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: IconButton(
-                      icon: const Icon(Icons.check, color: Colors.green),
-                      onPressed: () async {
-                        try {
-                          await updatetTournamentStatus(
-                            tournamentId: tournament.id,
-                            status: 'ongoing',
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error starting tournament: $e'),
-                            ),
-                          );
-                        }
-                      },
-                    ),
+                    ],
                   ),
               ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              tournament.name.toUpperCase(),
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              tournament.type,
+              style: const TextStyle(color: AppColors.muted),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 20,
+              runSpacing: 12,
+              children: [
+                _detail(
+                  Icons.calendar_today_outlined,
+                  DateFormat('d MMM yyyy').format(tournament.startDate),
+                ),
+                _detail(
+                  Icons.people_outline,
+                  '${tournament.playerIds.length} players',
+                ),
+                _detail(
+                  completed
+                      ? Icons.check_circle_outline
+                      : Icons.sports_esports_outlined,
+                  completed ? 'Completed' : '$matchesLeft matches left',
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: upcoming && isAdmin
+                  ? FilledButton.icon(
+                      icon: const Icon(Icons.play_arrow, size: 20),
+                      label: const Text('Start tournament'),
+                      onPressed: () => _start(context),
+                    )
+                  : FilledButton.icon(
+                      onPressed: upcoming
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => TournamentDetailPage(
+                                  tournament: tournament,
+                                  isAdmin: isAdmin,
+                                ),
+                              ),
+                            ),
+                      icon: Icon(
+                        upcoming ? Icons.schedule : Icons.arrow_outward,
+                        size: 18,
+                      ),
+                      label: Text(
+                        upcoming
+                            ? 'Starts ${DateFormat('d MMM').format(tournament.startDate)}'
+                            : 'View tournament',
+                      ),
+                    ),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _detail(IconData icon, String label) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 16, color: AppColors.muted),
+      const SizedBox(width: 7),
+      Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+    ],
+  );
 }

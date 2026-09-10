@@ -1,11 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:tourney_app/pages/home_page.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
-
   @override
   State<SignupPage> createState() => _SignupPageState();
 }
@@ -13,31 +12,36 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _nameController = TextEditingController(); // Add a name field
+  final _nameController = TextEditingController();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-
   final _formKey = GlobalKey<FormState>();
-
   bool _isLoading = false;
 
-  Future<void> _signup() async {
-    setState(() {
-      _isLoading = true;
-    });
+  @override
+  void dispose() {
+    for (final controller in [
+      _emailController,
+      _passwordController,
+      _nameController,
+      _firstNameController,
+      _lastNameController,
+    ]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
+  Future<void> _signup() async {
+    if (!_formKey.currentState!.validate() || _isLoading) return;
+    setState(() => _isLoading = true);
     try {
-      // 1️⃣ Create Auth User
-      UserCredential userCredential = await FirebaseAuth.instance
+      final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
-
-      // 2️⃣ Get User UID
-      String uid = userCredential.user!.uid;
-
-      // 3️⃣ Save Player Profile to Firestore
+      final uid = credential.user!.uid;
       await FirebaseFirestore.instance.collection('players').doc(uid).set({
         'id': uid,
         'email': _emailController.text.trim(),
@@ -53,103 +57,120 @@ class _SignupPageState extends State<SignupPage> {
           'tournamentsPlayed': 0,
         },
       });
-
-      // 4️⃣ Navigate to Home Page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'An error occurred';
-      if (e.code == 'email-already-in-use') {
-        errorMessage = 'This email is already in use';
-      } else if (e.code == 'weak-password') {
-        errorMessage = 'Password should be at least 6 characters';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Unable to create your account.'),
+          ),
+        );
       }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errorMessage)));
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not save your profile. Please check your connection.',
+            ),
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  Widget _nameField(
+    TextEditingController controller,
+    String label,
+    String autofillHint,
+  ) => TextFormField(
+    controller: controller,
+    textCapitalization: TextCapitalization.words,
+    textInputAction: TextInputAction.next,
+    autofillHints: [autofillHint],
+    decoration: InputDecoration(labelText: label),
+    validator: (value) => value == null || value.trim().isEmpty
+        ? 'Enter your ${label.toLowerCase()}'
+        : null,
+  );
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Sign Up')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('JOIN THE COMMUNITY')),
+    body: CourtAuthLayout(
+      title: 'You’re up next.',
+      subtitle: 'Create your player profile to get started.',
+      child: AutofillGroup(
         child: Form(
           key: _formKey,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _firstNameController,
-                decoration: const InputDecoration(labelText: 'First Name'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter first name'
-                    : null,
+              _nameField(
+                _firstNameController,
+                'First name',
+                AutofillHints.givenName,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _lastNameController,
-                decoration: const InputDecoration(labelText: 'Last Name'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter last name'
-                    : null,
+              const SizedBox(height: 16),
+              _nameField(
+                _lastNameController,
+                'Last name',
+                AutofillHints.familyName,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Preferred Name'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter a name'
-                    : null,
+              const SizedBox(height: 16),
+              _nameField(
+                _nameController,
+                'Player name',
+                AutofillHints.nickname,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter an email'
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(
+                  labelText: 'Email address',
+                  prefixIcon: Icon(Icons.alternate_email),
+                ),
+                validator: (value) =>
+                    value == null || !value.trim().contains('@')
+                    ? 'Enter a valid email address'
                     : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter a password'
+                autofillHints: const [AutofillHints.newPassword],
+                onFieldSubmitted: (_) => _signup(),
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  helperText: 'At least 6 characters',
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+                validator: (value) => value == null || value.trim().length < 6
+                    ? 'Use at least 6 characters'
                     : null,
               ),
-              const SizedBox(height: 20),
-              _isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                      onPressed: _signup,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      ),
-                    ),
+              const SizedBox(height: 28),
+              FilledButton(
+                onPressed: _isLoading ? null : _signup,
+                child: Text(
+                  _isLoading ? 'Creating your account…' : 'Create account',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: _isLoading ? null : () => Navigator.pop(context),
+                child: const Text('Already a member? Sign in'),
+              ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

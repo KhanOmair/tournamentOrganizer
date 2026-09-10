@@ -29,8 +29,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Tournament Organizer',
-      theme: orangeTheme,
-      home: AuthGate(),
+      theme: midnightCourtTheme,
+      home: const AuthGate(),
     );
   }
 }

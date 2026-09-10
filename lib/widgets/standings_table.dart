@@ -1,138 +1,137 @@
 import 'package:flutter/material.dart';
 import 'package:tourney_app/models/team.dart';
 import 'package:tourney_app/models/tournament.dart';
+import 'package:tourney_app/utils/theme_data.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
 
 class StandingsTable extends StatelessWidget {
   final List<Team> teams;
   final List<Group> groups;
+  const StandingsTable({super.key, required this.teams, required this.groups});
 
-  const StandingsTable({Key? key, required this.teams, required this.groups})
-    : super(key: key);
-
-  List<Team> _sortTeams(List<Team> unsortedTeams) {
-    final sorted = List<Team>.from(unsortedTeams);
-    sorted.sort((a, b) {
-      // Sort by Points
-      if (b.points != a.points) return b.points.compareTo(a.points);
-
-      // If Points equal, sort by Goal Difference
-      if (b.goalDifference != a.goalDifference) {
-        return b.goalDifference.compareTo(a.goalDifference);
-      }
-
-      // If GD equal, sort by Wins
-      if (b.wins != a.wins) return b.wins.compareTo(a.wins);
-
-      // If all equal, sort alphabetically
-      return a.teamName.compareTo(b.teamName);
-    });
-    return sorted;
-  }
+  List<Team> _sortTeams(List<Team> values) =>
+      List<Team>.from(values)..sort((a, b) {
+        if (b.points != a.points) return b.points.compareTo(a.points);
+        if (b.goalDifference != a.goalDifference) {
+          return b.goalDifference.compareTo(a.goalDifference);
+        }
+        if (b.wins != a.wins) return b.wins.compareTo(a.wins);
+        return a.teamName.compareTo(b.teamName);
+      });
 
   @override
   Widget build(BuildContext context) {
-    final sortedTeams = _sortTeams(teams);
-
+    if (teams.isEmpty) {
+      return const CourtEmptyState(
+        title: 'No standings yet',
+        message: 'Teams will appear here when they are added.',
+      );
+    }
+    final currentTeams = {for (final team in teams) team.teamId: team};
     return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: groups.isEmpty
-            ? showStandingsTable(sortedTeams)
-            : showGroupTable(),
-      ),
-    );
-  }
-
-  Widget showGroupTable() {
-    final teamMap = {for (var t in teams) t.teamId: t};
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: groups.map((group) {
-          final updatedGroupTeams = group.teams
-              .map((t) => teamMap[t.teamId] ?? t)
-              .toList();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                group.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              showStandingsTable(_sortTeams(updatedGroupTeams)),
-              const SizedBox(height: 10),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget showStandingsTable(sortedTeams) {
-    return DataTable(
-      // add a border to the table
-      border: TableBorder.all(color: Colors.black, width: 1),
-      columns: const [
-        DataColumn(label: Text('Rank')),
-        DataColumn(label: Text('Team')),
-        DataColumn(label: Text('P')),
-        DataColumn(label: Text('W')),
-        DataColumn(label: Text('D')),
-        DataColumn(label: Text('L')),
-        DataColumn(label: Text('Pts')),
-        DataColumn(label: Text('GD')),
-        DataColumn(label: Text('GF')),
-        DataColumn(label: Text('GA')),
-      ],
-      rows: List.generate(sortedTeams.length, (index) {
-        final Team team = sortedTeams[index];
-        return DataRow(
-          cells: [
-            DataCell(Text('${index + 1}')), // Rank
-            DataCell(
-              Row(
-                children: [
-                  //   CircleAvatar(
-                  //     radius: 12,
-                  //     backgroundColor: Colors.deepOrangeAccent,
-                  //     child: Text(
-                  //       team.teamName[0].toUpperCase(),
-                  //       style: const TextStyle(
-                  //         color: Colors.white,
-                  //         fontSize: 12,
-                  //       ),
-                  //     ),
-                  //   ),
-                  const SizedBox(width: 2),
-                  // make the team name bold and multiline if too long
-                  Expanded(
-                    child: Text(
-                      team.teamName,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                      maxLines: 2,
-                    ),
+      child: CourtPage(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (groups.isEmpty)
+              _table(context, _sortTeams(teams))
+            else
+              for (final group in groups) ...[
+                CourtSectionTitle(title: group.name),
+                _table(
+                  context,
+                  _sortTeams(
+                    group.teams
+                        .map((t) => currentTeams[t.teamId] ?? t)
+                        .toList(),
                   ),
-                ],
+                ),
+                const SizedBox(height: 28),
+              ],
+            const SizedBox(height: 16),
+            const Text(
+              'P  Played    W  Wins    D  Draws    L  Losses\nGD  Goal difference    GF  Goals for    GA  Goals against',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                height: 1.8,
               ),
             ),
-            DataCell(Text('${team.played}')),
-            DataCell(Text('${team.wins}')),
-            DataCell(Text('${team.draws}')),
-            DataCell(Text('${team.losses}')),
-            DataCell(Text('${team.points}')),
-            DataCell(Text('${team.goalDifference}')),
-            DataCell(Text('${team.goalsFor}')),
-            DataCell(Text('${team.goalsAgainst}')),
           ],
-        );
-      }),
+        ),
+      ),
     );
   }
+
+  Widget _table(BuildContext context, List<Team> sorted) => Card(
+    child: LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: DataTable(
+            columns: const [
+              DataColumn(label: Text('#')),
+              DataColumn(label: Text('Team')),
+              DataColumn(label: Text('P'), numeric: true),
+              DataColumn(label: Text('W'), numeric: true),
+              DataColumn(label: Text('D'), numeric: true),
+              DataColumn(label: Text('L'), numeric: true),
+              DataColumn(label: Text('Pts'), numeric: true),
+              DataColumn(label: Text('GD'), numeric: true),
+              DataColumn(label: Text('GF'), numeric: true),
+              DataColumn(label: Text('GA'), numeric: true),
+            ],
+            rows: List.generate(sorted.length, (i) {
+              final t = sorted[i];
+              return DataRow(
+                color: WidgetStatePropertyAll(
+                  i == 0
+                      ? AppColors.primary.withValues(alpha: .05)
+                      : Colors.transparent,
+                ),
+                cells: [
+                  DataCell(
+                    Text(
+                      '${i + 1}',
+                      style: TextStyle(
+                        color: i == 0 ? AppColors.primary : AppColors.muted,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 180),
+                      child: Text(
+                        t.teamName,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  DataCell(Text('${t.played}')),
+                  DataCell(Text('${t.wins}')),
+                  DataCell(Text('${t.draws}')),
+                  DataCell(Text('${t.losses}')),
+                  DataCell(
+                    Text(
+                      '${t.points}',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  DataCell(Text('${t.goalDifference}')),
+                  DataCell(Text('${t.goalsFor}')),
+                  DataCell(Text('${t.goalsAgainst}')),
+                ],
+              );
+            }),
+          ),
+        ),
+      ),
+    ),
+  );
 }

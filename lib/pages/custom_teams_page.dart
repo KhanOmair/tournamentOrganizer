@@ -2,186 +2,195 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:tourney_app/models/player.dart';
 import 'package:tourney_app/models/team.dart';
+import 'package:tourney_app/utils/theme_data.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
 
 class CreateTeamsPage extends StatefulWidget {
   final List<String> selectedPlayers;
-
-  const CreateTeamsPage({Key? key, required this.selectedPlayers})
-    : super(key: key);
-
+  const CreateTeamsPage({super.key, required this.selectedPlayers});
   @override
-  _CreateTeamsPageState createState() => _CreateTeamsPageState();
+  State<CreateTeamsPage> createState() => _CreateTeamsPageState();
 }
 
 class _CreateTeamsPageState extends State<CreateTeamsPage> {
-  List<Player> selectedPlayers = [];
-  List<Team> customTeams = [];
-  List<Player> allPlayers = [];
+  final List<Player> _selected = [];
+  final List<Team> _teams = [];
+  List<Player> _players = [];
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    fetchPlayers(widget.selectedPlayers);
+    _fetchPlayers();
   }
 
-  Future<void> fetchPlayers(List<String> selectedPlayerIds) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('players')
-        .get();
-    final players = snapshot.docs
-        .map((doc) => Player.fromFirestore(doc.data(), doc.id))
-        .toList();
-    for (var player in players) {
-      if (selectedPlayerIds.contains(player.id)) {
+  Future<void> _fetchPlayers() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('players')
+          .get();
+      if (!mounted) return;
+      setState(() {
+        _players = snapshot.docs
+            .where((doc) => widget.selectedPlayers.contains(doc.id))
+            .map((doc) => Player.fromFirestore(doc.data(), doc.id))
+            .toList();
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) {
         setState(() {
-          // allPlayers = players;
-          allPlayers.add(player);
+          _loading = false;
+          _error = 'Could not load players.';
         });
       }
     }
   }
 
   void _addTeam() {
-    if (selectedPlayers.length == 2) {
-      setState(() {
-        customTeams.add(
-          Team(
-            teamId: DateTime.now().millisecondsSinceEpoch.toString(),
-            teamName: "${selectedPlayers[0].name} & ${selectedPlayers[1].name}",
-            playerIdsTeam: [selectedPlayers[0].id, selectedPlayers[1].id],
-            played: 0,
-            wins: 0,
-            draws: 0,
-            losses: 0,
-            goalsFor: 0,
-            goalsAgainst: 0,
-          ),
-        );
-        selectedPlayers.clear();
-      });
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Select exactly 2 players')));
-    }
-  }
-
-  void _generateTournament() {
-    if (customTeams.isEmpty || customTeams.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Create at least two teams first')),
+    if (_selected.length != 2) return;
+    setState(() {
+      _teams.add(
+        Team(
+          teamId: DateTime.now().microsecondsSinceEpoch.toString(),
+          teamName: '${_selected[0].name} & ${_selected[1].name}',
+          playerIdsTeam: _selected.map((p) => p.id).toList(),
+        ),
       );
-      return;
-    }
-
-    // TODO: Navigate to Tournament Page with created teams
-    Navigator.pop(context, customTeams);
+      _selected.clear();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final availablePlayers = allPlayers.where((p) {
-      return !customTeams.any((t) => t.playerIdsTeam.contains(p.id));
-    }).toList();
-
+    final available = _players
+        .where((p) => !_teams.any((t) => t.playerIdsTeam.contains(p.id)))
+        .toList();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Custom Teams'),
-        backgroundColor: Colors.deepOrangeAccent,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Text(
-              'Select 2 players to form a team:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-
-            // Available Players
-            Expanded(
-              child: ListView.builder(
-                itemCount: availablePlayers.length,
-                itemBuilder: (context, index) {
-                  final player = availablePlayers[index];
-                  final isSelected = selectedPlayers.contains(player);
-                  return ListTile(
-                    title: Text(player.name),
-                    trailing: isSelected
-                        ? const Icon(Icons.check_circle, color: Colors.green)
-                        : null,
-                    onTap: () {
-                      setState(() {
-                        if (isSelected) {
-                          selectedPlayers.remove(player);
-                        } else if (selectedPlayers.length < 2) {
-                          selectedPlayers.add(player);
-                        }
-                      });
-                    },
-                  );
-                },
+      appBar: AppBar(title: const Text('CUSTOM TEAMS')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? CourtEmptyState(
+              title: _error!,
+              action: OutlinedButton(
+                onPressed: _fetchPlayers,
+                child: const Text('Try again'),
               ),
-            ),
-
-            const SizedBox(height: 10),
-
-            ElevatedButton(
-              onPressed: _addTeam,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrangeAccent,
-              ),
-              child: const Text('Add Team'),
-            ),
-
-            const SizedBox(height: 20),
-            const Divider(),
-
-            const Text(
-              'Created Teams:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-
-            // Created Teams List
-            SizedBox(
-              height: 150,
-              child: ListView.builder(
-                itemCount: customTeams.length,
-                itemBuilder: (context, index) {
-                  final team = customTeams[index];
-                  return ListTile(
-                    leading: CircleAvatar(child: Text('${index + 1}')),
-                    title: Text(team.teamName),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        setState(() => customTeams.removeAt(index));
-                      },
+            )
+          : SingleChildScrollView(
+              child: CourtPage(
+                maxWidth: 820,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CourtSectionTitle(
+                      title: 'Pick your pair',
+                      subtitle: 'Select two players for each team.',
+                      trailing: Text(
+                        '${_selected.length}/2',
+                        style: const TextStyle(color: AppColors.primary),
+                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            ElevatedButton.icon(
-              onPressed: _generateTournament,
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Done'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrangeAccent,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+                    if (available.isEmpty)
+                      const CourtEmptyState(
+                        title: 'Everyone has a team',
+                        icon: Icons.check_circle_outline,
+                      )
+                    else
+                      Card(
+                        child: Column(
+                          children: available.map((player) {
+                            final selected = _selected.contains(player);
+                            return CheckboxListTile(
+                              value: selected,
+                              secondary: CircleAvatar(
+                                backgroundColor: AppColors.elevated,
+                                foregroundColor: AppColors.primary,
+                                child: Text(
+                                  player.name.isEmpty
+                                      ? '?'
+                                      : player.name[0].toUpperCase(),
+                                ),
+                              ),
+                              title: Text(player.name),
+                              onChanged: !selected && _selected.length == 2
+                                  ? null
+                                  : (value) => setState(() {
+                                      if (value == true) {
+                                        _selected.add(player);
+                                      } else {
+                                        _selected.remove(player);
+                                      }
+                                    }),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _selected.length == 2 ? _addTeam : null,
+                      icon: const Icon(Icons.group_add_outlined),
+                      label: const Text('Add team'),
+                    ),
+                    const SizedBox(height: 36),
+                    CourtSectionTitle(
+                      title: 'Your teams',
+                      trailing: Text(
+                        '${_teams.length}',
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
+                    ),
+                    for (var i = 0; i < _teams.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Card(
+                          child: ListTile(
+                            leading: Text(
+                              '${i + 1}'.padLeft(2, '0'),
+                              style: courtHeading(24, color: AppColors.muted),
+                            ),
+                            title: Text(_teams[i].teamName),
+                            trailing: IconButton(
+                              tooltip: 'Remove team',
+                              icon: const Icon(
+                                Icons.close,
+                                color: AppColors.error,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _teams.removeAt(i)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (_teams.isEmpty)
+                      const Text(
+                        'Created teams will appear here.',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: _teams.length < 2
+                          ? null
+                          : () => Navigator.pop(context, _teams),
+                      child: const Text('Use these teams'),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Create at least two teams to continue.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
