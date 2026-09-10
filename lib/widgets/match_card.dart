@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tourney_app/utils/theme_data.dart';
 
 class MatchCard extends StatelessWidget {
   const MatchCard({super.key});
@@ -6,9 +7,9 @@ class MatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.orange.shade50,
+      color: AppColors.surface,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -19,22 +20,20 @@ class MatchCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.orange,
+                color: AppColors.primary,
               ),
             ),
             const Spacer(),
-            const Text(
-              "5 Upcoming",
-              style: TextStyle(fontSize: 16),
-            ),
+            const Text("5 Upcoming", style: TextStyle(fontSize: 16)),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 onPressed: () {
                   // Navigate to match list

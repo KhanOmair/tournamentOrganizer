@@ -8,6 +8,8 @@ import 'package:tourney_app/pages/custom_teams_page.dart';
 import 'package:tourney_app/utils/tournament_crud.dart';
 import 'package:tourney_app/utils/tourney_functions.dart';
 import 'package:tourney_app/widgets/grouping_widget.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
+import 'package:tourney_app/utils/theme_data.dart';
 
 class CreateTournamentPage extends StatefulWidget {
   const CreateTournamentPage({super.key});
@@ -23,7 +25,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
   List<TextEditingController> teamNameControllers = [];
 
   String? _selectedType;
-  List<String> _selectedPlayerIds = [];
+  final List<String> _selectedPlayerIds = [];
   String? sport;
 
   List<Team> mteams = [];
@@ -153,138 +155,104 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     _generateAndShowTeams(context);
   }
 
-  void _generateAndShowTeams(BuildContext context) async {
-    List<Team> tteams = await _generateTeams();
-
-    setState(() {
-      mteams = tteams;
-    });
-
-    showDialog(
+  Future<void> _generateAndShowTeams(BuildContext context) async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    final generated = await _generateTeams();
+    if (!mounted || !context.mounted) return;
+    setState(() => _isLoading = false);
+    if (generated.isEmpty) return;
+    Team? selectedFinalist;
+    final action = await showDialog<String>(
       context: context,
-      // make sure to make this in the future builder
-      builder: (_) => StatefulBuilder(
-        builder: (context, setState) {
-          return DraggableScrollableSheet(
-            expand: false,
-            builder: (context, scrollController) {
-              return AlertDialog(
-                content: Container(
-                  width: 500,
-                  padding: const EdgeInsets.all(16.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        const Text(
-                          'Random Teams',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (tteams.length.isOdd)
-                          Text(
-                            'Choose a team to be the finalist(optional)',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        const SizedBox(height: 16.0),
-                        SizedBox(
-                          // height: 300,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
-                            itemCount: tteams.length,
-                            itemBuilder: (context, index) {
-                              final team = tteams[index];
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  child: Text('${index + 1}'),
-                                ),
-                                title: Row(
-                                  children: [
-                                    Text(team.teamName),
-                                    Spacer(),
-
-                                    if (tteams.length.isOdd)
-                                      Checkbox(
-                                        value:
-                                            team.teamId == finalistTeam.teamId,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            if (value == true) {
-                                              finalistTeam = team;
-                                              finalistTeam = Team(
-                                                teamId: team.teamId,
-                                                teamName: team.teamName,
-                                                playerIdsTeam:
-                                                    team.playerIdsTeam,
-                                                played: team.played,
-                                                wins: 20,
-                                                draws: team.draws,
-                                                losses: team.losses,
-                                                goalsFor: team.goalsFor,
-                                                goalsAgainst: team.goalsAgainst,
-                                              );
-                                            } else {
-                                              finalistTeam = Team(
-                                                teamId: "bye_1",
-                                                teamName: "BYE",
-                                                playerIdsTeam: ["BYE"],
-                                                played: 0,
-                                                wins: 0,
-                                                draws: 0,
-                                                losses: 0,
-                                                goalsFor: 0,
-                                                goalsAgainst: 0,
-                                              );
-                                            }
-                                          });
-                                        },
-                                      ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, updateDialog) => AlertDialog(
+          scrollable: true,
+          title: const Text('YOUR TEAMS'),
+          content: SizedBox(
+            width: 500,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (generated.length.isOdd) ...[
+                  const Text(
+                    'Optional: choose a team to advance directly to the final.',
+                    style: TextStyle(color: AppColors.muted),
                   ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () async {
-                      // Regenerate Teams
-                      Navigator.pop(context); // Close the bottom sheet
-                    },
-                    child: const Text('Regenerate'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        mteams = tteams;
-                      }); // Save the generated teams
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Done'),
-                  ),
+                  const SizedBox(height: 16),
                 ],
-              );
-            },
-          );
-        },
+                for (var i = 0; i < generated.length; i++)
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.elevated,
+                      foregroundColor: AppColors.primary,
+                      child: Text('${i + 1}'),
+                    ),
+                    title: Text(generated[i].teamName),
+                    trailing: generated.length.isOdd
+                        ? Checkbox(
+                            value:
+                                selectedFinalist?.teamId == generated[i].teamId,
+                            onChanged: (value) => updateDialog(
+                              () => selectedFinalist = value == true
+                                  ? generated[i]
+                                  : null,
+                            ),
+                          )
+                        : null,
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, 'regenerate'),
+              child: const Text('Shuffle again'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, 'use'),
+              child: const Text('Use these teams'),
+            ),
+          ],
+        ),
       ),
     );
+    if (!mounted || !context.mounted) return;
+    if (action == 'regenerate') {
+      await _generateAndShowTeams(context);
+    } else if (action == 'use') {
+      setState(() {
+        mteams = generated;
+        teamsCreated = true;
+        finalistTeam =
+            selectedFinalist ??
+            Team(
+              teamId: 'not_selected',
+              teamName: 'BYE',
+              playerIdsTeam: ['BYE'],
+            );
+        groups = [];
+        _syncTeamNameControllers();
+      });
+    }
+  }
+
+  void _syncTeamNameControllers() {
+    for (final controller in teamNameControllers) {
+      controller.dispose();
+    }
+    teamNameControllers = mteams
+        .map((team) => TextEditingController(text: team.teamName))
+        .toList();
   }
 
   Future<void> _createTournament() async {
     if (!_formKey.currentState!.validate() ||
         _selectedType == null ||
-        teamsCreated == false) {
+        teamsCreated == false ||
+        mteams.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please complete all fields and select players'),
@@ -425,6 +393,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               playerIds.addAll(team.playerIdsTeam);
             }
             await updateTournamentsPlayedForPlayers(playerIds);
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Tournament created successfully')),
             );
@@ -432,6 +401,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             Navigator.pop(context); // Close the create tournament page
           })
           .catchError((error) {
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Error creating tournament: $error')),
             );
@@ -439,15 +409,16 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
 
       // Go back
     } catch (e) {
-      print(e);
-      print(mteams.map((team) => team.toMap()).toList());
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -960,50 +931,96 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Tournament')),
-      body: arePlayersSelected == true
-          ? showBody()
-          : Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ListView(
+      appBar: AppBar(title: const Text('NEW TOURNAMENT')),
+      body: CourtPage(
+        maxWidth: 820,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: arePlayersSelected
+            ? showBody()
+            : ListView(
                 children: [
-                  SizedBox(height: 10),
+                  const SizedBox(height: 24),
                   const Text(
-                    'Select Players:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    'STEP 01 / PLAYERS',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      letterSpacing: 1.4,
+                    ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 12),
+                  CourtSectionTitle(
+                    title: 'Who’s playing?',
+                    subtitle: 'Select the players taking part.',
+                    trailing: Text(
+                      '${_selectedPlayerIds.length} selected',
+                      style: const TextStyle(color: AppColors.muted),
+                    ),
+                  ),
                   _buildPlayerList(),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        arePlayersSelected = true;
-                      });
-                    },
-                    child: const Text('Continue'),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: _selectedPlayerIds.length < 2
+                        ? null
+                        : () => setState(() => arePlayersSelected = true),
+                    child: const Text('Continue to tournament setup'),
                   ),
+                  const SizedBox(height: 24),
                 ],
               ),
-            ),
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _dateController.dispose();
+    for (final controller in teamNameControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(_dateController.text) ?? now,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (date != null && mounted) {
+      _dateController.text = date.toIso8601String().split('T').first;
+    }
   }
 
   Widget showBody() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(vertical: 24),
       child: Form(
         key: _formKey,
         child: ListView(
           children: [
+            const Text(
+              'STEP 02 / SETUP',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                letterSpacing: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const CourtSectionTitle(title: 'Make it matchday'),
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Tournament Name'),
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Enter a name' : null,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               value: sport,
               items: const [
                 DropdownMenuItem(value: 'fifa', child: Text('FIFA')),
@@ -1022,8 +1039,9 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               decoration: const InputDecoration(labelText: 'Sport'),
               validator: (value) => value == null ? 'Select a Sport' : null,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               value: _selectedType,
               items: const [
                 DropdownMenuItem(
@@ -1052,11 +1070,14 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               validator: (value) =>
                   value == null ? 'Select a tournament type' : null,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             TextFormField(
               controller: _dateController,
+              readOnly: true,
+              onTap: _pickDate,
               decoration: const InputDecoration(
-                labelText: 'Start Date (YYYY-MM-DD)',
+                labelText: 'Start date',
+                suffixIcon: Icon(Icons.calendar_today_outlined),
               ),
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Enter a date' : null,
@@ -1078,7 +1099,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             //     ),
             //   ],
             // ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             ExpansionTile(
               key: ValueKey(mteams.length),
               title: Text('Change Team Names'),
@@ -1118,7 +1139,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                             IconButton(
                               icon: const Icon(
                                 Icons.check,
-                                color: Colors.green,
+                                color: AppColors.primary,
                               ),
                               onPressed: () {
                                 // Trigger setState to rebuild UI or save to Firebase
@@ -1151,8 +1172,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   return ListTile(
                     title: Row(
                       children: [
-                        Text(team.teamName),
-                        Spacer(),
+                        Expanded(child: Text(team.teamName)),
 
                         // if (teams.length.isOdd)
                         Checkbox(
@@ -1194,7 +1214,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 }).toList(),
               ),
 
-            // const SizedBox(height: 10),
+            // const SizedBox(height: 18),
             // if (isCustomTeams == false) const Text('Select Players:'),
             // if (isCustomTeams == false) _buildPlayerList(),
             const SizedBox(height: 20),
@@ -1203,24 +1223,26 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 onPressed: () async {
                   // Navigate to Custom Teams Page
 
-                  mteams = await Navigator.push(
+                  final selectedTeams = await Navigator.push<List<Team>>(
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
                           CreateTeamsPage(selectedPlayers: _selectedPlayerIds),
                     ),
                   );
-                  setState(() {});
-                  if (mteams.isNotEmpty) {
-                    teamsCreated = true;
-                  }
+                  if (!mounted || selectedTeams == null) return;
+                  setState(() {
+                    mteams = selectedTeams;
+                    teamsCreated = mteams.isNotEmpty;
+                    groups = [];
+                    _syncTeamNameControllers();
+                  });
                 },
                 child: Text('Create Custom Teams'),
               ),
             if (isCustomTeams == false)
               ElevatedButton(
                 onPressed: () {
-                  teamsCreated = true;
                   if (_selectedPlayerIds.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -1240,14 +1262,24 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 onPressed: () async {
                   // Navigate to Custom Teams Page
 
-                  groups = await Navigator.push(
+                  final selectedGroups = await Navigator.push<List<Group>>(
                     context,
                     MaterialPageRoute(
                       builder: (context) => GroupingWidget(teams: mteams),
                     ),
                   );
+                  if (!mounted || selectedGroups == null) return;
+                  setState(() => groups = selectedGroups);
                 },
                 child: Text('Create Groups '),
+              ),
+            if (groups.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  '${groups.length} groups ready',
+                  style: const TextStyle(color: AppColors.success),
+                ),
               ),
             const SizedBox(height: 20),
             _isLoading
@@ -1266,7 +1298,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.primary,
                     ),
                     child: const Text('Create Tournament'),
                   ),
@@ -1281,7 +1313,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       case 'fifa':
         return Column(
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             // add a toggle for doubles
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1297,7 +1329,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1312,7 +1344,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1334,7 +1366,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         isDoubles = false;
         return Column(
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1355,7 +1387,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       case 'carrom':
         return Column(
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             // add a toggle for doubles
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1371,7 +1403,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1386,7 +1418,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1406,7 +1438,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
       case 'pickleball':
         return Column(
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             // add a toggle for doubles
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1422,7 +1454,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1437,7 +1469,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1464,8 +1496,20 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('players').snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const CourtEmptyState(
+            title: 'Couldn’t load players',
+            message: 'Check your connection and try again.',
+          );
+        }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.data!.docs.isEmpty) {
+          return const CourtEmptyState(
+            title: 'No players yet',
+            message: 'Players appear here after signing up.',
+          );
         }
 
         final players = snapshot.data!.docs;
@@ -1479,18 +1523,24 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             final playerId = player.id;
             final playerName = player['name'];
 
-            return CheckboxListTile(
-              title: Text(playerName),
-              value: _selectedPlayerIds.contains(playerId),
-              onChanged: (isChecked) {
-                setState(() {
-                  if (isChecked == true) {
-                    _selectedPlayerIds.add(playerId);
-                  } else {
-                    _selectedPlayerIds.remove(playerId);
-                  }
-                });
-              },
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Card(
+                child: CheckboxListTile(
+                  title: Text(playerName),
+                  secondary: const Icon(Icons.person_outline),
+                  value: _selectedPlayerIds.contains(playerId),
+                  onChanged: (isChecked) {
+                    setState(() {
+                      if (isChecked == true) {
+                        _selectedPlayerIds.add(playerId);
+                      } else {
+                        _selectedPlayerIds.remove(playerId);
+                      }
+                    });
+                  },
+                ),
+              ),
             );
           },
         );
@@ -1516,7 +1566,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         name = 'Unknown';
       }
     } catch (e) {
-      print('Error fetching player names: $e');
+      debugPrint('Error fetching player names: $e');
     }
 
     return name;

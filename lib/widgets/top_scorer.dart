@@ -1,52 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:tourney_app/models/tournament.dart';
+import 'package:tourney_app/utils/theme_data.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
 
 class TopScorerWidget extends StatelessWidget {
   final List<TopScorer> topScorers;
-
-  const TopScorerWidget({Key? key, required this.topScorers}) : super(key: key);
+  const TopScorerWidget({super.key, required this.topScorers});
 
   @override
   Widget build(BuildContext context) {
-    if (topScorers.isEmpty) {
-      return const Text('No top scorers yet.');
-    }
-
-    // Sort all players by goals (highest first)
-    final sortedScorers = [...topScorers]
-      ..sort((a, b) => b.goals.compareTo(a.goals));
-
-    return Card(
-      margin: const EdgeInsets.all(12),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              'Top Scorers',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            ...sortedScorers.map(
-              (scorer) => ListTile(
-                leading: CircleAvatar(
-                  child: Text(
-                    scorer.name.isNotEmpty ? scorer.name[0].toUpperCase() : '?',
+    final sorted = [...topScorers]..sort((a, b) => b.goals.compareTo(a.goals));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CourtSectionTitle(title: 'Top scorers'),
+        if (sorted.isEmpty)
+          const CourtEmptyState(title: 'No goals recorded yet')
+        else
+          Card(
+            child: Column(
+              children: [
+                for (var i = 0; i < sorted.length; i++) ...[
+                  if (i > 0) const Divider(height: 1),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.elevated,
+                      foregroundColor: AppColors.primary,
+                      child: Text('${i + 1}'),
+                    ),
+                    title: Text(sorted[i].name),
+                    trailing: Text(
+                      '${sorted[i].goals} goals',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-                title: Text(scorer.name),
-                trailing: Text(
-                  '${scorer.goals} goal${scorer.goals == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
+                ],
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }

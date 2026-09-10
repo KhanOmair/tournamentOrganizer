@@ -1,210 +1,195 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:tourney_app/pages/home_page.dart';
+import 'package:flutter/material.dart';
+import 'package:tourney_app/widgets/court_widgets.dart';
 import 'signup_page.dart';
 
-Future<void> sendResetEmailQuick(String email) async {
-  final auth = FirebaseAuth.instance;
-
-  final actionCodeSettings = ActionCodeSettings(
-    url: 'https://khanomair.github.io/tournamentOrganizer/',
-    handleCodeInApp: false,
-    androidPackageName: null,
-    androidInstallApp: false,
-    dynamicLinkDomain: null,
-  );
-
-  await auth.sendPasswordResetEmail(
-    email: email.trim(),
-    actionCodeSettings: actionCodeSettings,
-  );
-}
+Future<void> sendResetEmailQuick(String email) =>
+    FirebaseAuth.instance.sendPasswordResetEmail(
+      email: email.trim(),
+      actionCodeSettings: ActionCodeSettings(
+        url: 'https://khanomair.github.io/tournamentOrganizer/',
+        handleCodeInApp: false,
+      ),
+    );
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
-
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isSendingReset = false;
+  bool _showPassword = false;
 
-  void loginUser() async {
-    setState(() {
-      _isLoading = true;
-    });
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> loginUser() async {
+    if (!_formKey.currentState!.validate() || _isLoading) return;
+    setState(() => _isLoading = true);
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
+      // AuthGate owns navigation when the signed-in user changes.
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? "Login failed")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Unable to sign in. Please try again.'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to sign in. Please check your connection.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   Future<void> _sendPasswordResetEmail() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty) {
+    if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email to reset the password')),
+        const SnackBar(
+          content: Text('Enter your email address to reset your password.'),
+        ),
       );
       return;
     }
-
-    setState(() {
-      _isSendingReset = true;
-    });
-
+    setState(() => _isSendingReset = true);
     try {
       await sendResetEmailQuick(email);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Reset link sent to $email')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Check your email for a password reset link.'),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
-      final message =
-          e.message ?? 'Could not send reset email. Please try again.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Could not send reset email.')),
+        );
+      }
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unexpected error trying to send reset link'),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not send reset email. Please try again.'),
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isSendingReset = false;
-      });
+      if (mounted) setState(() => _isSendingReset = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          bool isDesktop = constraints.maxWidth > 800;
-          return Row(
+  Widget build(BuildContext context) => Scaffold(
+    body: CourtAuthLayout(
+      title: 'Welcome back.',
+      subtitle: 'Sign in to follow your community’s tournaments.',
+      child: AutofillGroup(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 1,
-                child: Center(
-                  child: SingleChildScrollView(
-                    child: SizedBox(
-                      width: isDesktop ? 400 : double.infinity,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 8,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // add asset image widget for logo
-                            Image.asset(
-                              'assets/images/logo.png',
-                              height: 400,
-                              width: 400,
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'Login',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            TextField(
-                              controller: _emailController,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: _passwordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Password',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            _isLoading
-                                ? const CircularProgressIndicator()
-                                : SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: loginUser,
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 16,
-                                        ),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                      child: const Text(
-                                        'Login',
-                                        style: TextStyle(fontSize: 18),
-                                      ),
-                                    ),
-                                  ),
-                            const SizedBox(height: 12),
-                            _isSendingReset
-                                ? const CircularProgressIndicator()
-                                : TextButton(
-                                    onPressed: _sendPasswordResetEmail,
-                                    child: const Text(
-                                      'Forgot password?',
-                                      style: TextStyle(color: Colors.green),
-                                     
-                                    ),
-                                  ),
-
-                            const SizedBox(height: 2),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const SignupPage(),
-                                  ),
-                                );
-                              },
-                              child: const Text(
-                                "Don't have an account? Sign Up",
-                                style: TextStyle(color: Colors.green),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Email address',
+                  prefixIcon: Icon(Icons.alternate_email),
+                ),
+                validator: (value) =>
+                    value == null || !value.trim().contains('@')
+                    ? 'Enter a valid email address'
+                    : null,
+              ),
+              const SizedBox(height: 18),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: !_showPassword,
+                autofillHints: const [AutofillHints.password],
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => loginUser(),
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    tooltip: _showPassword ? 'Hide password' : 'Show password',
+                    onPressed: () =>
+                        setState(() => _showPassword = !_showPassword),
+                    icon: Icon(
+                      _showPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                     ),
                   ),
                 ),
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Enter your password'
+                    : null,
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _isSendingReset ? null : _sendPasswordResetEmail,
+                  child: Text(
+                    _isSendingReset
+                        ? 'Sending reset link…'
+                        : 'Forgot password?',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: _isLoading ? null : loginUser,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.arrow_forward, size: 18),
+                label: Text(_isLoading ? 'Signing in…' : 'Sign in'),
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton(
+                onPressed: _isLoading
+                    ? null
+                    : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SignupPage()),
+                      ),
+                child: const Text('New here? Create an account'),
               ),
             ],
-          );
-        },
+          ),
+        ),
       ),
-    );
-  }
+    ),
+  );
 }
