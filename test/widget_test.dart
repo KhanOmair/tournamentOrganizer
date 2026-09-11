@@ -12,6 +12,8 @@ import 'package:tourney_app/pages/player_details_page.dart';
 import 'package:tourney_app/pages/signup_page.dart';
 import 'package:tourney_app/pages/tournament_detail_page.dart';
 import 'package:tourney_app/utils/theme_data.dart';
+import 'package:tourney_app/utils/match_crud.dart';
+import 'package:tourney_app/widgets/tourney_rounds_widget.dart';
 import 'package:tourney_app/widgets/grouping_widget.dart';
 import 'package:tourney_app/widgets/podium_widget.dart';
 import 'package:tourney_app/widgets/standings_table.dart';
@@ -109,6 +111,45 @@ Future<void> mount(
       home: child,
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+Future<void> openCompletedGoalEditor(
+  WidgetTester tester,
+  PlayerGoalSaver saveGoals,
+) async {
+  final cup = tournament();
+  final completedMatch = GameMatch(
+    id: match.id,
+    type: match.type,
+    status: 'completed',
+    playerIds: match.playerIds,
+    scores: match.scores,
+    winner: 'team1',
+    team1: homeTeam,
+    team2: awayTeam,
+    streamUrl: '',
+  );
+  await mount(
+    tester,
+    Scaffold(
+      body: Builder(
+        builder: (context) => TextButton(
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (_) => MatchEditorDialog(
+              tournament: cup,
+              round: round,
+              match: completedMatch,
+              savePlayerGoals: saveGoals,
+            ),
+          ),
+          child: const Text('Edit goals'),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('Edit goals'));
   await tester.pumpAndSettle();
 }
 
@@ -222,7 +263,7 @@ void main() {
   }
 
   testWidgets(
-    'score editor stages goals and cancel leaves the model unchanged',
+    'goal additions start at zero, cannot subtract totals, and cancel discards them',
     (tester) async {
       final cup = tournament();
       await mount(
@@ -231,16 +272,128 @@ void main() {
       );
       await tester.tap(find.byTooltip('Edit match').first);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byTooltip('Add a goal for Omar'));
-      await tester.tap(find.byTooltip('Add a goal for Omar'));
+      final counter = find.byKey(const ValueKey('goals-to-add-omar'));
+      final increase = find.byTooltip('Increase goals to add for Omar');
+      final decrease = find.byWidgetPredicate(
+        (widget) =>
+            widget is IconButton &&
+            widget.tooltip == 'Decrease goals to add for Omar',
+      );
+      expect(tester.widget<Text>(counter).data, '0');
+      expect(find.text('Total: 5'), findsOneWidget);
+      expect(tester.widget<IconButton>(decrease).onPressed, isNull);
+      await tester.ensureVisible(increase);
+      await tester.tap(increase);
       await tester.pump();
-      expect(find.text('6'), findsOneWidget);
-      expect(cup.topScorers.first.goals, 5);
+      await tester.tap(increase);
+      await tester.pump();
+      expect(tester.widget<Text>(counter).data, '2');
+      expect(find.text('Total: 5'), findsOneWidget);
+      await tester.tap(decrease);
+      await tester.pump();
+      expect(tester.widget<Text>(counter).data, '1');
+      await tester.tap(decrease);
+      await tester.pump();
+      expect(tester.widget<Text>(counter).data, '0');
+      expect(tester.widget<IconButton>(decrease).onPressed, isNull);
+      await tester.tap(increase);
+      await tester.pump();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
-      expect(find.text('EDIT MATCH'), findsNothing);
       expect(cup.topScorers.first.goals, 5);
+      await tester.tap(find.byTooltip('Edit match').first);
+      await tester.pumpAndSettle();
+      expect(tester.widget<Text>(counter).data, '0');
+      expect(find.text('Total: 5'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('saving player goals sends only the addition and skips zeroes', (
+    tester,
+  ) async {
+    final additions = <String, int>{};
+    await openCompletedGoalEditor(tester, ({
+      required String tournamentId,
+      required String playerId,
+      required int goals,
+    }) async {
+      expect(tournamentId, 'cup');
+      additions[playerId] = goals;
+    });
+    final increase = find.byTooltip('Increase goals to add for Omar');
+    await tester.ensureVisible(increase);
+    await tester.tap(increase);
+    await tester.pump();
+    await tester.tap(increase);
+    await tester.pump();
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+    expect(additions, {'omar': 2});
+    expect(find.text('EDIT MATCH'), findsNothing);
+    await tester.tap(find.text('Edit goals'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+    expect(additions, {'omar': 2});
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'retrying a partial goal save does not add successful entries twice',
+    (tester) async {
+      final totals = {'omar': 5, 'sam': 1};
+      final attempts = <String, int>{};
+      await openCompletedGoalEditor(tester, ({
+        required String tournamentId,
+        required String playerId,
+        required int goals,
+      }) async {
+        attempts[playerId] = (attempts[playerId] ?? 0) + 1;
+        if (playerId == 'sam' && attempts[playerId] == 1) {
+          throw StateError('Temporary connection failure');
+        }
+        totals[playerId] = totals[playerId]! + goals;
+      });
+      for (final name in ['Omar', 'Omar', 'Sam']) {
+        final increase = find.byTooltip('Increase goals to add for $name');
+        await tester.ensureVisible(increase);
+        await tester.tap(increase);
+        await tester.pump();
+      }
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+      expect(totals, {'omar': 7, 'sam': 1});
+      expect(find.text('Total: 7'), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('goals-to-add-omar')))
+            .data,
+        '0',
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('goals-to-add-sam')))
+            .data,
+        '1',
+      );
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+      expect(totals, {'omar': 7, 'sam': 2});
+      expect(attempts, {'omar': 1, 'sam': 2});
+      expect(find.text('EDIT MATCH'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  test(
+    'goal persistence rejects negative additions and ignores zero',
+    () async {
+      await expectLater(
+        addPlayerGoal(tournamentId: 'cup', playerId: 'omar', goals: -1),
+        throwsArgumentError,
+      );
+      await addPlayerGoal(tournamentId: 'cup', playerId: 'omar', goals: 0);
     },
   );
 

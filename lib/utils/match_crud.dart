@@ -422,6 +422,15 @@ Future<void> addPlayerGoal({
   // required String teamId,
   required int goals,
 }) async {
+  if (goals < 0) {
+    throw ArgumentError.value(
+      goals,
+      'goals',
+      'Goals to add cannot be negative',
+    );
+  }
+  if (goals == 0) return;
+
   final tournamentRef = FirebaseFirestore.instance
       .collection('tournaments')
       .doc(tournamentId);
@@ -429,7 +438,7 @@ Future<void> addPlayerGoal({
   await FirebaseFirestore.instance.runTransaction((transaction) async {
     final snapshot = await transaction.get(tournamentRef);
     final data = snapshot.data();
-    if (data == null) return;
+    if (data == null) throw StateError('Tournament not found');
 
     List scorers = List.from(data['topScorers'] ?? []);
 
@@ -438,12 +447,7 @@ Future<void> addPlayerGoal({
     if (index != -1) {
       scorers[index]['goals'] += goals;
     } else {
-      // scorers.add({
-      //   'playerId': playerId,
-      //   'playerName': playerName,
-      //   'teamId': teamId,
-      //   'goals': goals,
-      // });
+      throw StateError('Player not found in tournament scorers');
     }
 
     transaction.update(tournamentRef, {'topScorers': scorers});

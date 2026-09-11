@@ -69,15 +69,24 @@ class TournamentRoundsWidget extends StatelessWidget {
   }
 }
 
+typedef PlayerGoalSaver =
+    Future<void> Function({
+      required String tournamentId,
+      required String playerId,
+      required int goals,
+    });
+
 class MatchEditorDialog extends StatefulWidget {
   final Tournament tournament;
   final Round round;
   final GameMatch match;
+  final PlayerGoalSaver savePlayerGoals;
   const MatchEditorDialog({
     super.key,
     required this.tournament,
     required this.round,
     required this.match,
+    this.savePlayerGoals = addPlayerGoal,
   });
   @override
   State<MatchEditorDialog> createState() => _MatchEditorDialogState();
@@ -90,7 +99,8 @@ class _MatchEditorDialogState extends State<MatchEditorDialog> {
   late final TextEditingController _stream;
   late String _homeId;
   late String _awayId;
-  final Map<String, int> _goalChanges = {};
+  final Map<String, int> _goalsToAdd = {};
+  final Map<String, int> _savedGoals = {};
   bool _changeTeams = false;
   bool _saving = false;
   bool _scoreSaved = false;
@@ -152,15 +162,16 @@ class _MatchEditorDialogState extends State<MatchEditorDialog> {
         );
       }
       if (!_changeTeams) {
-        for (final id in _goalChanges.keys.toList()) {
-          final delta = _goalChanges[id]!;
-          if (delta == 0) continue;
-          await addPlayerGoal(
+        for (final id in _goalsToAdd.keys.toList()) {
+          final goals = _goalsToAdd[id]!;
+          if (goals <= 0) continue;
+          await widget.savePlayerGoals(
             tournamentId: widget.tournament.id,
             playerId: id,
-            goals: delta,
+            goals: goals,
           );
-          _goalChanges[id] = 0;
+          _savedGoals[id] = (_savedGoals[id] ?? 0) + goals;
+          _goalsToAdd[id] = 0;
         }
       }
       if (mounted) Navigator.pop(context);
@@ -248,12 +259,12 @@ class _MatchEditorDialogState extends State<MatchEditorDialog> {
                     scorers.isNotEmpty) ...[
                   const Divider(height: 36),
                   Text(
-                    'PLAYER GOALS',
+                    'ADD PLAYER GOALS',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Tournament totals. Changes apply when you save.',
+                    'Choose how many goals to add. They are added to the tournament total when you save.',
                     style: TextStyle(color: AppColors.muted, fontSize: 12),
                   ),
                   const SizedBox(height: 12),
@@ -262,37 +273,50 @@ class _MatchEditorDialogState extends State<MatchEditorDialog> {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
                         children: [
-                          Expanded(child: Text(scorer.name)),
-                          IconButton(
-                            tooltip: 'Remove a goal for ${scorer.name}',
-                            onPressed:
-                                _saving ||
-                                    scorer.goals +
-                                            (_goalChanges[scorer.id] ?? 0) <=
-                                        0
-                                ? null
-                                : () => setState(
-                                    () => _goalChanges.update(
-                                      scorer.id,
-                                      (v) => v - 1,
-                                      ifAbsent: () => -1,
-                                    ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(scorer.name),
+                                Text(
+                                  'Total: ${scorer.goals + (_savedGoals[scorer.id] ?? 0)}',
+                                  style: const TextStyle(
+                                    color: AppColors.muted,
+                                    fontSize: 12,
                                   ),
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Text(
-                            '${scorer.goals + (_goalChanges[scorer.id] ?? 0)}',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                                ),
+                              ],
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Add a goal for ${scorer.name}',
+                            tooltip: 'Decrease goals to add for ${scorer.name}',
+                            onPressed:
+                                _saving || (_goalsToAdd[scorer.id] ?? 0) <= 0
+                                ? null
+                                : () => setState(
+                                    () => _goalsToAdd[scorer.id] =
+                                        _goalsToAdd[scorer.id]! - 1,
+                                  ),
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                          Semantics(
+                            label: 'Goals to add for ${scorer.name}',
+                            value: '${_goalsToAdd[scorer.id] ?? 0}',
+                            child: Text(
+                              '${_goalsToAdd[scorer.id] ?? 0}',
+                              key: ValueKey('goals-to-add-${scorer.id}'),
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Increase goals to add for ${scorer.name}',
                             onPressed: _saving
                                 ? null
                                 : () => setState(
-                                    () => _goalChanges.update(
+                                    () => _goalsToAdd.update(
                                       scorer.id,
                                       (v) => v + 1,
                                       ifAbsent: () => 1,
